@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="heron">
+    <xacro:macro name="plugins">
+      <gazebo reference="mynteye_right_color_link">
+        <sensor type="camera" name="cameraR">
+          <update_rate>30.0</update_rate>
+          <camera name="head">
+            <horizontal_fov>1.3962634</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.02</near>
+              <far>300</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <!-- Noise is sampled independently per pixel on each frame.
+                   That pixel's noise value is added to each of its color
+                   channels, which at that point lie in the range [0,1]. -->
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+          <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+            <alwaysOn>true</alwaysOn>
+            <updateRate>0.0</updateRate>
+            <cameraName>/camera/right</cameraName>
+            <imageTopicName>image_raw</imageTopicName>
+            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+            <frameName>mynteye_right_color_link</frameName>
+            <hackBaseline>0.07</hackBaseline>
+            <distortionK1>0.0</distortionK1>
+            <distortionK2>0.0</distortionK2>
+            <distortionK3>0.0</distortionK3>
+            <distortionT1>0.0</distortionT1>
+            <distortionT2>0.0</distortionT2>
+          </plugin>
+        </sensor>
+      </gazebo>
+
+      <gazebo reference="mynteye_left_color_link">
+        <sensor type="camera" name="cameraL">
+          <update_rate>30.0</update_rate>
+          <camera name="head">
+            <horizontal_fov>1.3962634</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>R8G8B8</format>
+            </image>
+            <clip>
+              <near>0.02</near>
+              <far>300</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <!-- Noise is sampled independently per pixel on each frame.
+                   That pixel's noise value is added to each of its color
+                   channels, which at that point lie in the range [0,1]. -->
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+          <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+            <alwaysOn>true</alwaysOn>
+            <updateRate>0.0</updateRate>
+            <cameraName>/camera/left</cameraName>
+            <imageTopicName>image_raw</imageTopicName>
+            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+            <frameName>mynteye_left_color_link</frameName>
+            <hackBaseline>0.07</hackBaseline>
+            <distortionK1>0.0</distortionK1>
+            <distortionK2>0.0</distortionK2>
+            <distortionK3>0.0</distortionK3>
+            <distortionT1>0.0</distortionT1>
+            <distortionT2>0.0</distortionT2>
+          </plugin>
+        </sensor>
+      </gazebo>
+
+      <gazebo>
+        <plugin name="imu_controller" filename="libhector_gazebo_ros_imu.so">
+           <updateRate>100.0</updateRate>
+           <bodyName>imu_link</bodyName>
+           <frameId>imu_link</frameId>
+           <topicName>imu</topicName>
+           <accelDrift>0.005 0.005 0.005</accelDrift>
+           <accelGaussianNoise>0.005 0.005 0.005</accelGaussianNoise>
+           <rateDrift>0.005 0.005 0.005 </rateDrift>
+           <rateGaussianNoise>0.005 0.005 0.005 </rateGaussianNoise>
+           <yawDrift>0.005</yawDrift>
+           <yawGaussianNoise>0.005</yawGaussianNoise>
+         </plugin>
+      </gazebo>
+
+      <gazebo>
+        <plugin name="p3d_plugin_base" filename="libgazebo_ros_p3d.so">
+          <bodyName>base_link</bodyName>
+          <frameName>odom</frameName>
+          <!--How to define an empty string in xacro?-->
+          <!--<robotNamespace>""</robotNamespace>-->
+          <updateRate>50.0</updateRate>
+          <topicName>/p3d_odom</topicName>
+          <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <gaussianNoise>0</gaussianNoise>
+        </plugin>
+      </gazebo>
+
+      <gazebo>
+        <plugin name="gps_plugin_base" filename="libhector_gazebo_ros_gps.so">
+          <updateRate>5.0</updateRate>
+          <alwaysOn>true</alwaysOn>
+          <bodyName>gps_link</bodyName>
+          <frameId>gps_link</frameId>
+          <topicName>gps/fix</topicName>
+          <velocityTopicName>fix_velocity</velocityTopicName>
+
+          <referenceLatitude>41.19</referenceLatitude>
+          <referenceLongitude>-8.69</referenceLongitude>
+          <referenceAltitude>0</referenceAltitude>
+          <referenceHeading>90</referenceHeading>
+
+
+          <offset>0.0 0.0 0.0</offset>
+          <drift>0.0001 0.0001 0.0001</drift>
+          <gaussianNoise>0.01 0.01 0.015</gaussianNoise>
+        </plugin>
+      </gazebo>
+
+      <gazebo reference="lidar_left_link">
+      <sensor type="ray" name="hokuyo_l">
+            <pose>0 0 0 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>40</update_rate>
+            <ray>
+              <scan>
+                <horizontal>
+                  <samples>720</samples>
+                  <resolution>1</resolution>
+                  <min_angle>-3.14159</min_angle>
+                  <max_angle>3.14159</max_angle>
+                </horizontal>
+              </scan>
+              <range>
+                <min>0.10</min>
+                <max>30.0</max>
+                <resolution>0.01</resolution>
+              </range>
+              <noise>
+                <type>gaussian</type>
+                <!-- Noise parameters based on published spec for Hokuyo laser
+                     achieving "+-30mm" accuracy at range < 10m.  A mean of 0.0m and
+                     stddev of 0.01m will put 99.7% of samples within 0.03m of the true
+                     reading. -->
+                <mean>0.0</mean>
+                <stddev>0.01</stddev>
+              </noise>
+            </ray>
+            <plugin name="gazebo_ros_l_hokuyo_controller" filename="libgazebo_ros_laser.so">
+              <topicName>/lidar_left/scan</topicName>
+              <frameName>lidar_left_link</frameName>
+            </plugin>
+          </sensor>
+      </gazebo>
+
+<gazebo reference="lidar_right_link">
+<sensor type="ray" name="hokuyo_r">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>40</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.10</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise parameters based on published spec for Hokuyo laser
+               achieving "+-30mm" accuracy at range < 10m.  A mean of 0.0m and
+               stddev of 0.01m will put 99.7% of samples within 0.03m of the true
+               reading. -->
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_r_hokuyo_controller" filename="libgazebo_ros_laser.so">
+        <topicName>/lidar_right/scan</topicName>
+        <frameName>lidar_right_link</frameName>
+      </plugin>
+    </sensor>
+    </gazebo>
+
+    <!-- Attach hydrodynamics plugin -->
+     <xacro:include filename="$(find wamv_gazebo)/urdf/dynamics/wamv_gazebo_dynamics_plugin.xacro" />
+     <xacro:usv_dynamics_gazebo name="heron"/>
+
+     <!-- Attach wind plugin -->
+     <xacro:include filename="$(find wamv_gazebo)/urdf/dynamics/wamv_gazebo_wind_plugin.xacro" />
+     <xacro:usv_wind_gazebo name="heron" vx="0.0" vy="0.0" vz="0.0"/>
+
+<!--    <gazebo>
+       <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
+         <commandTopic>cmd_vel</commandTopic>
+         <odometryTopic>test</odometryTopic>
+         <odometryFrame>test</odometryFrame>
+         <odometryRate>50.0</odometryRate>
+         <robotBaseFrame>base_footprint</robotBaseFrame>
+       </plugin>
+     </gazebo>-->
+
+    </xacro:macro>
+</robot>

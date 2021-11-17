@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="usv_thrust_gazebo" params="name">
+    <!--Gazebo Plugin for simulating the dynamics-->
+    <gazebo >
+      <plugin name="usv_thrust_${name}" filename="libusv_gazebo_thrust_plugin.so">
+          <cmdTimeout>1.0</cmdTimeout>
+          <thruster>
+                <linkName>${name}_propeller_link</linkName>
+                <propJointName>${name}_engine_propeller_joint</propJointName>
+                <cmdTopic>${name}/cmd</cmdTopic>
+                <mappingType>0</mappingType>
+                <maxCmd>3.0</maxCmd>
+                <maxForceFwd>250.0</maxForceFwd>
+                <maxForceRev>-250.0</maxForceRev>
+          </thruster>
+      </plugin>
+      </gazebo>
+  </xacro:macro>
+</robot>

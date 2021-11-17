@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="green_totem">
+    <static>true</static>
+    <include>
+      <uri>model://surmark46104</uri>
+    </include>
+    <link name="cover">
+      <visual name="cover_visual">
+        <pose>0 0 0.492 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>1</radius>
+            <length>3</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Green</name>
+          </script>
+        </material>
+      </visual>
+      <collision name="cover_visual">
+        <pose>0 0 0.492 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>1</radius>
+            <length>3</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="totem_joint" type="fixed">
+      <parent>surmark46104::link</parent>
+      <child>cover</child>
+    </joint>
+  </model>
+</sdf>

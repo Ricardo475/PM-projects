@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="heron">
+<xacro:macro name="heron">
+    <material name="gray"><color rgba="0.7 0.7 0.7 1.0"/></material>
+    <material name="dark_gray"><color rgba="0.2 0.2 0.2 1.0"/></material>
+    <material name="yellow"><color rgba="0.8 0.8 0.0 1.0"/></material>
+
+    <link name = "perc_link"/>
+    <joint name = "perc_to_base" type = "fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <parent link = "base_link" />
+        <child  link = "perc_link" />
+    </joint>
+
+    <link name = "base_footprint"/>
+    <joint name="base_to_footprint_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.3" rpy="0.0 0.0 0.0" />
+        <parent link="base_footprint" />
+        <child link="base_link" />
+    </joint>
+
+    <link name = "base_link">
+        <inertial>
+          <mass value="100" />
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <inertia ixx="1" ixy="0.0" ixz="0.0"
+                 iyy="1" iyz="0.0"
+                 izz="1" />
+        </inertial>
+        <visual name="body">
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/heron_base.stl" scale="1 1 1"/>
+            </geometry>
+            <material name="dark_gray" />
+        </visual>
+
+        <collision name="body">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/heron_base.stl" scale="1 1 1"/>
+            </geometry>
+        </collision>
+
+        <visual name="panel_left">
+            <origin xyz="0.00000000 0.34495 0.04959" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/left_panel.stl" />
+            </geometry>
+            <material name="yellow" />
+        </visual>
+
+        <collision name="panel_left">
+            <origin xyz="0.00000000 0.34495 0.04959" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/left_panel.stl" />
+            </geometry>
+        </collision>
+
+        <visual name="panel_right">
+            <origin xyz="0.00000000 -0.34495 0.04959" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/right_panel.stl" />
+            </geometry>
+            <material name="yellow" />
+        </visual>
+
+        <collision name="panel_right">
+            <origin xyz="0.00000000 -0.34495 0.04959" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="package://heron_sim/models/heron/mesh/right_panel.stl" />
+            </geometry>
+        </collision>
+    </link>
+
+    <!-- Navigation parts -->
+    <link name = "nav_link"/>
+
+    <joint name="nav_to_base_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <parent link="base_link" />
+        <child link="nav_link" />
+    </joint>
+
+
+
+    <link name = "imu_link"/>
+
+    <joint name="imu_to_nav_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        <parent link="nav_link" />
+        <child link="imu_link" />
+    </joint>
+
+    <link name = "gps_link"/>
+
+    <joint name="gps_to_nav_joint" type="fixed">
+        <origin xyz="0.0 0.135 0.08" rpy="0.0 0.0 0.0" />
+        <parent link="nav_link" />
+        <child link="gps_link" />
+    </joint>
+
+    <!-- Perception parts -->
+    
+
+        
+    <xacro:include filename="sensors/mynteye_description/mynteye.urdf.xacro"/>
+    <xacro:mynteye/>
+
+    <xacro:include filename="sensors/hokuyo_description/hokuyo.urdf.xacro"/>
+    <xacro:hokuyo name="lidar_left"/>
+    <xacro:hokuyo name="lidar_right"/>
+
+    <joint name="lidar_left_to_perc" type="fixed">
+        <origin xyz="0.53 0.38 0.03" rpy="0.0 0.0 0.0"/>
+        <parent link="perc_link" />
+        <child  link="lidar_left_link"/>
+    </joint>
+
+    <joint name="lidar_right_to_perc" type="fixed">
+        <origin xyz="-0.53 -0.38 0.0" rpy="0.0 0.0 3.1415"/>
+        <parent link="perc_link" />
+        <child  link="lidar_right_link"/>
+    </joint>
+
+    <joint name="mynteye_to_perc" type="fixed">
+        <origin xyz="0.35 0.06 0.1" rpy="0.0 0.0 0.0"/>
+        <parent link="perc_link" />
+        <child  link="mynteye_link"/>
+    </joint>
+
+</xacro:macro>
+</robot>

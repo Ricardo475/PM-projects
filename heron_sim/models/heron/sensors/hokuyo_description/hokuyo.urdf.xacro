@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="VLP-16">
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+  <xacro:macro name="hokuyo" params="name:=hokuyo">
+    <link name="${name}_link">
+      <collision>
+        <origin xyz="0 0 -0.03" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.1 0.1 0.1"/>
+        </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 -0.03" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://heron_sim/models/heron/sensors/hokuyo_description/mesh/hokuyo.dae"/>
+      </geometry>
+    </visual>
+    </link>
+  </xacro:macro>
+</robot>

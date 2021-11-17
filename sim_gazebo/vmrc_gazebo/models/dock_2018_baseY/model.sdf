@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+
+  <!-- Important: This file is generated. DO NOT EDIT! -->
+
+  <model name="robotx_dock_2018_baseY">
+    
+    <!--
+      This is how this dock should look like:
+          X  X          X  X          X  X          XXXX          XXXX          X  X          X  X          X  X    
+    -->
+
+    <!-- Row 0 -->
+    <include>
+      <name>dock_block_0</name>
+      <pose>1.464 -1.446 0.25 0 0 -0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+    <include>
+      <name>dock_block_1</name>
+      <pose>1.2 7.304 0.25 0 0 0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 1 -->
+    <include>
+      <name>dock_block_2</name>
+      <pose>2.464 0.268 0.25 0 0 -0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+    <include>
+      <name>dock_block_3</name>
+      <pose>2.2 5.572 0.25 0 0 0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 2 -->
+    <include>
+      <name>dock_block_4</name>
+      <pose>3.464 2 0.25 0 0 -0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+    <include>
+      <name>dock_block_5</name>
+      <pose>3.2 3.84 0.25 0 0 0.5236</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 3 -->
+    <include>
+      <name>dock_block_6</name>
+      <pose>4 3 0.25 0 0 0</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 4 -->
+    <include>
+      <name>dock_block_7</name>
+      <pose>6 3 0.25 0 0 0</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 5 -->
+    <include>
+      <name>dock_block_8</name>
+      <pose>8 3 0.25 0 0 0</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+    <!-- Row 6 -->
+    <include>
+      <name>dock_block_9</name>
+      <pose>10 3 0.25 0 0 0</pose>
+      <uri>model://dock_block_4x4</uri>
+    </include>
+
+  </model>
+</sdf>
