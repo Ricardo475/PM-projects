@@ -1,3 +1,4 @@
+
 #include "detectmarker_node.h"
 
 
@@ -148,10 +149,21 @@ int main(int argc, char **argv)
   ros::NodeHandle n_private("~"); //Private definition node namespace
   //Create a subscriber object
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
+  listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
   vel.angular.z = 1;
 
   ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+
+  try
+  {
+    //listener->waitForTransform()
+
+  }
+  catch (tf::TransformException ex)
+  {
+
+  }
 
   ros::spin();
 }
