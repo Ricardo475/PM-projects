@@ -26,6 +26,8 @@
 ///ROS Publisher
 ros::Publisher pub; //Global to be use outside main
 geometry_msgs::Twist vel;
+tf::TransformListener *listener ;
+
 bool color_red,color_blue,color_green,cross,tri,circle;
 
 #endif
