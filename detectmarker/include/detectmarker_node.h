@@ -6,7 +6,7 @@
 #include <ros/ros.h>
 #include <ros/subscriber.h>
 #include <ros/publisher.h>
-
+#include <math.h>
 ///MSGs includes
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ModelStates.h>

@@ -16,7 +16,19 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
   pub.publish(vel);
    return;
 }
-
+int count_real_corners(const std::vector<cv::Point> &result)
+{
+  int count=1;
+  cv::Point p=result[0];
+  for(size_t j =1;j<result.size();j++)
+  {
+    if(cv::sqrt((p.x-result.at(j).x)*(p.x-result.at(j).x) + (p.y-result.at(j).y)*(p.y-result.at(j).y)) >10)
+    {
+      count++;
+    }
+  }
+  return count;
+}
 void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 {
   cv_bridge::CvImagePtr cv_ptr;
@@ -32,17 +44,16 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
   cv::Mat image = cv_ptr -> image;
 
   // Convert input image to HSV
-  cv::Mat hsv_image;
+  cv::Mat hsv_image,gray_image,mask_thresh;
 
   cv::cvtColor(cv_ptr->image, hsv_image, cv::COLOR_BGR2HSV);
+
+
 
   cv::Mat mask_green,mask_blue,mask_red;
   cv::inRange(hsv_image,cv::Scalar(40, 40,40),cv::Scalar(70, 255,255),mask_green); //green
   cv::inRange(hsv_image,cv::Scalar(120, 40,40),cv::Scalar(130, 255,255),mask_blue); //blue
   cv::inRange(hsv_image,cv::Scalar(0, 40,40),cv::Scalar(10, 255,255),mask_red); //red
-
-
-
 
   std::vector<std::vector<cv::Point>> countors_green,countors_red,countors_blue,countors;
   std::vector<cv::Vec4i> hierarchy;
@@ -50,7 +61,7 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
   cv::Mat object_outliers_green,object_outliers_red,object_outliers_blue,object_outliers;
   cv::Canny(mask_red,object_outliers_red,100,200,3,true);
   cv::Canny(mask_green,object_outliers_green,100,200,3,true);
-  cv::Canny(mask_blue,object_outliers_blue,1500,3000,3,true);//100 e 200
+  cv::Canny(mask_blue,object_outliers_blue,100,200,3,true);//100 e 200
 
   cv::findContours(object_outliers_green,countors_green,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
   cv::findContours(object_outliers_red,countors_red,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
@@ -86,6 +97,26 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
     for(size_t j =0;j<result.size();j++)
     {
       ROS_INFO("Point %d:  (%d, %d)", j,result.at(j).x,result.at(j).y);
+
+    }
+    int count=0;
+    if(result.size() < 10 )
+      count = count_real_corners(result);
+    else
+      count = result.size();
+    ROS_INFO("Point %d", count);
+    if(count == 3)
+    {
+      ROS_INFO("ITS A FUCKING TRIANGLE");
+      tri= true;
+    } else if(count == 12)
+    {
+      ROS_INFO("ITS A FUCKING CROSS");
+      cross = true;
+
+    }else {
+      ROS_INFO("ITS A FUCKING CIRCLE");
+      circle = true;
     }
 
   }
@@ -100,7 +131,7 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
   // Show the image inside it.
   cv::imshow( "normal image", hsv_image);
   cv::imshow( "mask", object_outliers);
-  cv::imshow( "mask_blue", mask_red);
+  cv::imshow( "mask_blue", mask_blue);
 
 
   // Wait for a keystroke.
