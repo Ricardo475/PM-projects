@@ -7,6 +7,10 @@ project(assignment1)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   gazebo_msgs
@@ -20,6 +24,13 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 ## System dependencies are found with CMake's conventions
@@ -124,12 +135,6 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 ## Declare a C++ library
