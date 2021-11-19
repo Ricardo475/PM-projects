@@ -15,50 +15,81 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
 
 
   if (counter_odo>50){
-     ROS_INFO("ODOMETRY: [%f, %f]", msg->pose.pose.position.x, msg->pose.pose.position.y);
+     ROS_INFO("ODOMETRY [X, Y, theta]: [%f, %f, %f]", msg->pose.pose.position.x, msg->pose.pose.position.y,msg->pose.pose.orientation.w);
      counter_odo = 0;
    }
   counter_odo++;
 
 
-
+/*
   //Slowing down
   if(abs(msg->pose.pose.position.y)<2 && abs(msg->pose.pose.position.y)>1.2){
     vel.linear.x = 0.5;
   }
-
-
-
-  //STOPPING -> using when 1 is free
+  //STOPPING AND TURNING -> using when 1 is free
   if(abs(msg->pose.pose.position.y)<1){
     vel.linear.x = 0;
     vel.linear.y = 0;
+    vel.angular.z = 1; //left
+    //vel.angular.z = -1; //right
+
+    turn_right_on = true;
   }
 
-  /*if(!first_arm)
-  {
-    if(abs(pose_out_left.pose.position.x)<1.0 && abs(pose_out_left.pose.position.x)>0.0)
-      first_arm = !first_arm;
-  }
+  //STOPPING TURN
+  if(turn_right_on){
 
-  else if(first_arm && abs(pose_out_left.pose.position.x)>1.5){
-
-    if(stop_rate == 0){
-        ROS_INFO("ALO1");
-
-
+    if(vel.angular.z == 1.0){
+      if(msg->pose.pose.orientation.w < 0.000005)
+          vel.angular.z = 0;
     }
-    else if(stop_rate == (vel.linear.x*150/0.2)){
-      ROS_INFO("ALO2");
-      vel.linear.x = 0;
-      vel.linear.y = 0;
+    else if(vel.angular.z == -1.0){
+      if(msg->pose.pose.orientation.w > 0.999995)
+          vel.angular.z = 0;
     }
-    stop_rate++;
   }
 */
   pub.publish(vel);
    return;
 }
+
+void heron_stop(){
+  vel.linear.x = 0;
+  vel.linear.y = 0;
+  vel.angular.z = 0;
+  return;
+}
+
+void heron_foward(){
+  vel.linear.x = 1;
+  return;
+}
+
+void heron_backwards(){
+  vel.linear.x = -1;
+  return;
+}
+
+void heron_slowdown(){
+  if(vel.linear.x>0)
+    vel.linear.x = 0.5;
+  else if (vel.linear.x<0)
+    vel.linear.x = -0.5;
+  return;
+}
+
+
+void heron_rotate(char side){
+
+  if(side=='L')
+    vel.angular.z = 1;
+
+  else if(side=='R')
+    vel.angular.z = -1;
+
+  return;
+}
+
 
 void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
@@ -75,13 +106,16 @@ void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
 
 void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
-  counter2++;
-  //listener->transformPose("/base_link", *msg, pose_out_right);
- if(counter2 > print_rate){
-    //ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
-    //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
-    counter2 = 0;
+  if(turn_right_on){
+    counter2++;
+    listener->transformPose("/base_link", *msg, pose_out_right);
+   if(counter2 > print_rate){
+      ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
+      //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
+      counter2 = 0;
+    }
   }
+
  return;
 }
 
@@ -270,7 +304,7 @@ int main(int argc, char **argv)
 
   ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
   ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
-  ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+  //ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
 
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);

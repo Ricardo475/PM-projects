@@ -36,7 +36,7 @@ image_transport::Publisher imagePub;
 sensor_msgs::ImagePtr imageMsg;
 bool color_red,color_blue,color_green,cross,tri,circle;
 bool first = true;
-bool first_arm = false;
+bool turn_right_on = false;
 int counter_odo = 0;
 std::string color,shape;
 
