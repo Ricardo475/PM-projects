@@ -24,6 +24,9 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/Twist.h>
 
+///STATE DEFINES
+//#define
+
 ///ROS Publisher
 ros::Publisher pub; //Global to be use outside main
 geometry_msgs::Twist vel;
@@ -34,12 +37,19 @@ geometry_msgs::PoseStamped pose_out_right;
 tf::TransformListener *listener ;
 image_transport::Publisher imagePub;
 sensor_msgs::ImagePtr imageMsg;
-bool color_red,color_blue,color_green,cross,tri,circle;
+std::string color,shape;
+bool orientation= false,init=true;
+struct dock{
+ bool color_red,color_blue,color_green,cross,tri,circle,identified, avaiability;
+ std::string shape;
+ std::string color;
+};
+dock dock_left,dock_right;
+
 bool first = true;
 bool turn_right_on = false;
 int counter_odo = 0;
-std::string color,shape;
-
+int state = 0;
 int counter1 = 0;
 int counter2 = 0;
 //int stop_rate = 0;
