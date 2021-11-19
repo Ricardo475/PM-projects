@@ -26,8 +26,11 @@
 ///ROS Publisher
 ros::Publisher pub; //Global to be use outside main
 geometry_msgs::Twist vel;
+geometry_msgs::PoseStamped left_dock;
+geometry_msgs::PoseStamped right_dock;
 tf::TransformListener *listener ;
 
 bool color_red,color_blue,color_green,cross,tri,circle;
-
+int counter1 = 0;
+int print_rate = 25;
 #endif
