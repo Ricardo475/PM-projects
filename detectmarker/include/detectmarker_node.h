@@ -32,11 +32,14 @@ geometry_msgs::PoseStamped pose_out_right;
 
 //Global vars
 tf::TransformListener *listener ;
-
+image_transport::Publisher imagePub;
+sensor_msgs::ImagePtr imageMsg;
 bool color_red,color_blue,color_green,cross,tri,circle;
 bool first = true;
 bool first_arm = false;
 int counter_odo = 0;
+std::string color,shape;
+
 int counter1 = 0;
 int counter2 = 0;
 //int stop_rate = 0;

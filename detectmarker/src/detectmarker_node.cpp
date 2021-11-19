@@ -86,19 +86,30 @@ void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
 }
 
 
-/*
+
 int count_real_corners(const std::vector<cv::Point> &result)
 {
-  int count=1;
-  cv::Point p=result[0];
-  for(size_t j =1;j<result.size();j++)
+  int count=0;
+  cv::Point p;
+
+  for(size_t i = 0;i < result.size();i++)
   {
-    if(cv::sqrt((p.x-result.at(j).x)*(p.x-result.at(j).x) + (p.y-result.at(j).y)*(p.y-result.at(j).y)) >10)
+    p=result[i];
+    for(size_t j =0;j<result.size();j++)
     {
-      count++;
+      if(j != i)
+      {
+        if(cv::sqrt((p.x-result.at(j).x)*(p.x-result.at(j).x) + (p.y-result.at(j).y)*(p.y-result.at(j).y)) <10)
+        {
+          count++;
+        }
+      }
+
     }
+
   }
-  return count;
+  if(count == 0) return result.size();
+  return result.size()-(count/2);
 }
 void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -129,87 +140,115 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
   std::vector<std::vector<cv::Point>> countors_green,countors_red,countors_blue,countors;
   std::vector<cv::Vec4i> hierarchy;
 
-  cv::Mat object_outliers_green,object_outliers_red,object_outliers_blue,object_outliers;
+
+
+  //not needed was only causing troubles
+ /* cv::Mat object_outliers_green,object_outliers_red,object_outliers_blue,object_outliers;
   cv::Canny(mask_red,object_outliers_red,100,200,3,true);
   cv::Canny(mask_green,object_outliers_green,100,200,3,true);
-  cv::Canny(mask_blue,object_outliers_blue,100,200,3,true);//100 e 200
+  cv::Canny(mask_blue,object_outliers_blue,100,200,3,true);//100 e 200*/
 
-  cv::findContours(object_outliers_green,countors_green,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
-  cv::findContours(object_outliers_red,countors_red,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
-  cv::findContours(object_outliers_blue,countors_blue,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
+  //with masks the result is cleaner in terms of countors
+  cv::findContours(mask_green,countors_green,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
+  cv::findContours(mask_red,countors_red,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
+  cv::findContours(mask_blue,countors_blue,hierarchy,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
 
+  cv::Mat img;
   if(countors_green.size()>0)
   {
     countors = countors_green;
     color_green = true;
-    object_outliers = object_outliers_green;
-    ROS_INFO("GREEN COLOR");
+    img = mask_green;
+    color = "GREEN";
   } else if(countors_red.size()>0)
   {
     countors = countors_red;
     color_red = true;
-    object_outliers = object_outliers_red;
-    ROS_INFO("RED COLOR");
+    color = "red";
+    img = mask_red;
   } else if(countors_blue.size()>0)
   {
     countors = countors_blue;
     color_blue = true;
-    object_outliers = object_outliers_blue;
-    ROS_INFO("BLUE COLOR");
+    color = "blue";
+    img = mask_blue;
   }
 
   std::vector<cv::Point> result;
-
-  for(size_t i = 0 ;i<countors.size();i++)
+  if(countors.size() > 0)
   {
-    double epsilon  = 0.02* cv::arcLength(countors.at(i),true);
-    cv::approxPolyDP(countors.at(i),result,epsilon,true);
-    ROS_INFO("num of vertices: %d", result.size());
-    for(size_t j =0;j<result.size();j++)
+    for(size_t i = 0 ;i<countors.size();i++)
     {
-      ROS_INFO("Point %d:  (%d, %d)", j,result.at(j).x,result.at(j).y);
 
+      double epsilon  = 0.02* cv::arcLength(countors.at(i),true);
+      cv::approxPolyDP(countors.at(i),result,epsilon,true);
+
+      if(result.size() > 2 && abs(cv::contourArea(result))>100)
+      {
+
+       // ROS_INFO("num of vertices: %d", result.size());
+
+        int count=0;
+        if(result.size() < 7 )
+          count = count_real_corners(result);
+        else
+          count = result.size();
+        //ROS_INFO("Point %d", count);
+        if(count == 3 && cv::isContourConvex(result))
+        {
+          //ROS_INFO("ITS A  %s TRIANGLE", color.c_str());
+          shape = "TRIANGLE";
+          tri= true;
+        } else if(count == 12)
+        {
+          //ROS_INFO("ITS A %s CROSS", color.c_str());
+          shape = "CROSS";
+          cross = true;
+
+        }else if(count > 7 && cv::isContourConvex(result)) {
+          //ROS_INFO("ITS A %s CIRCLE", color.c_str());
+          shape = "CIRCLE";
+          circle = true;
+        }
+
+        cv::Moments m = cv::moments(img,false);
+        cv::Point p(m.m10/m.m00, m.m01/m.m00);
+        if(!color.empty() && !shape.empty())
+        {
+          ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
+          cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
+         /* imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+          imageMsg->header.stamp = ros::Time::now();
+          pub.publish(imageMsg);*/
+          cv::imshow( "image", image);
+
+          // Wait for a keystroke.
+          cv::waitKey(1000);
+          cv::destroyAllWindows();
+        }
+      }
     }
-    int count=0;
-    if(result.size() < 10 )
-      count = count_real_corners(result);
-    else
-      count = result.size();
-    ROS_INFO("Point %d", count);
-    if(count == 3)
-    {
-      ROS_INFO("ITS A FUCKING TRIANGLE");
-      tri= true;
-    } else if(count == 12)
-    {
-      ROS_INFO("ITS A FUCKING CROSS");
-      cross = true;
 
-    }else {
-      ROS_INFO("ITS A FUCKING CIRCLE");
-      circle = true;
-    }
 
+
+    //cv::circle(object_outliers, p, 5, cv::Scalar(128,0,0), -1);
+    //cv::rectangle(object_outliers,cv::Point(p.x-30,p.y-30),cv::Point(p.x+30,p.y+30),cv::Scalar(128,0,0),1,cv::LINE_8,0);
+
+
+    // Show the image inside it.
+ /*   cv::imshow( "normal image", hsv_image);
+    cv::imshow( "mask", img);
+    cv::imshow( "mask_blue", mask_blue);
+
+
+    // Wait for a keystroke.
+    cv::waitKey(0);
+    cv::destroyAllWindows();*/
   }
 
 
-  cv::Moments m = cv::moments(mask_red,false);
-  cv::Point p(m.m10/m.m00, m.m01/m.m00);
-  //cv::circle(object_outliers, p, 5, cv::Scalar(128,0,0), -1);
-  //cv::rectangle(object_outliers,cv::Point(p.x-30,p.y-30),cv::Point(p.x+30,p.y+30),cv::Scalar(128,0,0),1,cv::LINE_8,0);
-
-
-  // Show the image inside it.
-  cv::imshow( "normal image", hsv_image);
-  cv::imshow( "mask", object_outliers);
-  cv::imshow( "mask_blue", mask_blue);
-
-
-  // Wait for a keystroke.
-  cv::waitKey(0);
-  cv::destroyAllWindows();
 }
-*/
+
 
 int main(int argc, char **argv)
 {
@@ -228,9 +267,10 @@ int main(int argc, char **argv)
   //Create a subscriber object
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
 
+
   ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
   ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
-  //ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+  ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
 
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
