@@ -14,21 +14,79 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
   br.sendTransform(tf::StampedTransform(transform,ros::Time::now(), "odom","base_footprint"));
 
 
+  if (counter_odo>50){
+     ROS_INFO("ODOMETRY: [%f, %f]", msg->pose.pose.position.x, msg->pose.pose.position.y);
+     counter_odo = 0;
+   }
+  counter_odo++;
+
+
+
+  //Slowing down
+  if(abs(msg->pose.pose.position.y)<2 && abs(msg->pose.pose.position.y)>1.2){
+    vel.linear.x = 0.5;
+  }
+
+
+
+  //STOPPING -> using when 1 is free
+  if(abs(msg->pose.pose.position.y)<1){
+    vel.linear.x = 0;
+    vel.linear.y = 0;
+  }
+
+  /*if(!first_arm)
+  {
+    if(abs(pose_out_left.pose.position.x)<1.0 && abs(pose_out_left.pose.position.x)>0.0)
+      first_arm = !first_arm;
+  }
+
+  else if(first_arm && abs(pose_out_left.pose.position.x)>1.5){
+
+    if(stop_rate == 0){
+        ROS_INFO("ALO1");
+
+
+    }
+    else if(stop_rate == (vel.linear.x*150/0.2)){
+      ROS_INFO("ALO2");
+      vel.linear.x = 0;
+      vel.linear.y = 0;
+    }
+    stop_rate++;
+  }
+*/
   pub.publish(vel);
    return;
 }
 
-void cb_left_dock(const geometry_msgs::PoseStamped::ConstPtr &msg)
+void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
- counter1++;
- if(counter1 > print_rate)
- {
-   ROS_INFO("Y value:[ %f ]", left_dock.pose.position.y);
-   counter1 = 0;
- }
+  counter1++;
+ listener->transformPose("/base_link", *msg, pose_out_left);
+ if(counter1 > print_rate){
+    ROS_INFO("NEAREST[L]: [%f, %f]", pose_out_left.pose.position.x,  pose_out_left.pose.position.y);
+    //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
+    counter1 = 0;
+  }
  return;
 }
 
+
+void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
+{
+  counter2++;
+  //listener->transformPose("/base_link", *msg, pose_out_right);
+ if(counter2 > print_rate){
+    //ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
+    //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
+    counter2 = 0;
+  }
+ return;
+}
+
+
+/*
 int count_real_corners(const std::vector<cv::Point> &result)
 {
   int count=1;
@@ -151,9 +209,17 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
   cv::waitKey(0);
   cv::destroyAllWindows();
 }
+*/
 
 int main(int argc, char **argv)
 {
+  if(first)
+   {
+     //pose_out_left.pose.position.x = 100;
+     vel.linear.x = 1;
+     first = !first;
+   }
+
   //Init the ros system
   ros::init(argc,argv,"detectmarker_node");
   //Create the node handles to establish the program as a ROS node
@@ -162,15 +228,13 @@ int main(int argc, char **argv)
   //Create a subscriber object
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
 
-  ros::Subscriber sub_dock_left = n_public.subscribe("/lidar_left/nearest", 1, cb_left_dock);
- // ros::Subscriber sub_dock_right = n_public.subscribe("/lidar_right/nearest", 1, cb_right_dock);
-
-
-  ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+  ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
+  ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
+  //ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
 
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
-  vel.angular.z = 1;
+  //vel.angular.z = 1;
 
    try
    {

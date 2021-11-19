@@ -22,15 +22,23 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
+#include <geometry_msgs/Twist.h>
 
 ///ROS Publisher
 ros::Publisher pub; //Global to be use outside main
 geometry_msgs::Twist vel;
-geometry_msgs::PoseStamped left_dock;
-geometry_msgs::PoseStamped right_dock;
+geometry_msgs::PoseStamped pose_out_left;
+geometry_msgs::PoseStamped pose_out_right;
+
+//Global vars
 tf::TransformListener *listener ;
 
 bool color_red,color_blue,color_green,cross,tri,circle;
+bool first = true;
+bool first_arm = false;
+int counter_odo = 0;
 int counter1 = 0;
-int print_rate = 25;
+int counter2 = 0;
+//int stop_rate = 0;
+int print_rate = 50;
 #endif
