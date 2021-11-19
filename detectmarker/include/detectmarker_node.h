@@ -27,7 +27,8 @@
 ros::Publisher pub; //Global to be use outside main
 geometry_msgs::Twist vel;
 tf::TransformListener *listener ;
-
+image_transport::Publisher imagePub;
+sensor_msgs::ImagePtr imageMsg;
 bool color_red,color_blue,color_green,cross,tri,circle;
-
+std::string color,shape;
 #endif
