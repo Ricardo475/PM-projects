@@ -17,6 +17,18 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
   pub.publish(vel);
    return;
 }
+
+void cb_left_dock(const geometry_msgs::PoseStamped::ConstPtr &msg)
+{
+ counter1++;
+ if(counter1 > print_rate)
+ {
+   ROS_INFO("Y value:[ %f ]", left_dock.pose.position.y);
+   counter1 = 0;
+ }
+ return;
+}
+
 int count_real_corners(const std::vector<cv::Point> &result)
 {
   int count=0;
@@ -188,22 +200,31 @@ int main(int argc, char **argv)
   ros::NodeHandle n_private("~"); //Private definition node namespace
   //Create a subscriber object
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
+
+
+
+
+  ros::Subscriber sub_dock_left = n_public.subscribe("/lidar_left/nearest", 1, cb_left_dock);
+ // ros::Subscriber sub_dock_right = n_public.subscribe("/lidar_right/nearest", 1, cb_right_dock);
+  ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+
+
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
-  //image_transport::ImageTransport it(n_public);
-
   vel.angular.z = 1;
-  ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
-  //imagePub = it.advertise("/camera/right/image_raw", 1);
-  try
-  {
-    //listener->waitForTransform()
 
-  }
-  catch (tf::TransformException ex)
-  {
+   try
+   {
+     listener->waitForTransform("/lidar_right_link", "base_link", ros::Time::now(), ros::Duration(3.0));
+     listener->waitForTransform("/lidar_left_link", "base_link", ros::Time::now(), ros::Duration(3.0));
 
-  }
+   }
+   catch (tf::TransformException ex)
+   {
+     ROS_ERROR("%s",ex.what());
+     ros::Duration(1.0).sleep();
+   }
 
   ros::spin();
+  delete listener;
 }
