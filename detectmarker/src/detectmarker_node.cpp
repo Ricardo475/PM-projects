@@ -23,7 +23,7 @@ void cb_left_dock(const geometry_msgs::PoseStamped::ConstPtr &msg)
  counter1++;
  if(counter1 > print_rate)
  {
-   ROS_INFO("Y value:[ %f ]", left_dock.pose.position.y);
+  // ROS_INFO("Y value:[ %f ]", left_dock.pose.position.y);
    counter1 = 0;
  }
  return;
@@ -46,15 +46,38 @@ int count_real_corners(const std::vector<cv::Point> &result)
           count++;
         }
       }
-
     }
-
   }
   if(count == 0) return result.size();
   return result.size()-(count/2);
 }
+
+void fill_dock_avaiability(dock& item)
+{
+  if(item.circle || item.cross)
+  {
+    item.avaiability = false;
+  }else if(item.tri)
+  {
+    item.avaiability = true;
+  }
+}
+void fill_dock(dock& item,const bool& tri,const bool& cross,const bool& circle,const bool& color_red,const bool& color_blue,const bool& color_green)
+{
+  item.identified = true;
+  item.shape = shape;
+  item.color = color;
+  item.tri = tri;
+  item.cross = cross;
+  item.circle = circle;
+  item.color_red = color_red;
+  item.color_blue = color_blue;
+  item.color_green = color_green;
+}
 void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 {
+  bool color_red=false,color_blue=false,color_green=false,cross=false,tri=false,circle=false;
+  bool detect = 0;
   cv_bridge::CvImagePtr cv_ptr;
   try
   {
@@ -129,7 +152,7 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
       {
 
        // ROS_INFO("num of vertices: %d", result.size());
-
+        detect = true;
         int count=0;
         if(result.size() < 7 )
           count = count_real_corners(result);
@@ -157,18 +180,40 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
         cv::Point p(m.m10/m.m00, m.m01/m.m00);
         if(!color.empty() && !shape.empty())
         {
-          ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
-          cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
+           if(!dock_right.identified || !dock_left.identified)
+           {
+              ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
+              if(!orientation)
+              {
+                vel.angular.z = -1;
+
+                fill_dock(dock_left,tri,cross,circle,color_red,color_blue,color_green);
+                fill_dock_avaiability(dock_left);
+
+              } else if(orientation)
+              {
+                vel.angular.z = 1;
+
+                fill_dock(dock_right,tri,cross,circle,color_red,color_blue,color_green);
+                fill_dock_avaiability(dock_right);
+              }
+          }
+          if(dock_left.identified && dock_right.identified)
+            ROS_INFO("DOCK LEFT: %s   DOCK RIGHT:  %s", dock_left.shape.c_str(), dock_right.shape.c_str());
          /* imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
           imageMsg->header.stamp = ros::Time::now();
           pub.publish(imageMsg);*/
+
+          /*
+          cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
           cv::imshow( "image", image);
 
           // Wait for a keystroke.
           cv::waitKey(1000);
-          cv::destroyAllWindows();
+          cv::destroyAllWindows();*/
         }
       }
+
     }
 
 
@@ -188,6 +233,10 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
     cv::destroyAllWindows();*/
   }
 
+  if(!detect && dock_left.identified)
+  {
+    orientation = true;
+  }
 
 }
 
@@ -200,18 +249,21 @@ int main(int argc, char **argv)
   ros::NodeHandle n_private("~"); //Private definition node namespace
   //Create a subscriber object
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
-
+  if(init)
+  {
+    vel.angular.z = 1;
+    init = false;
+  }
 
 
 
   ros::Subscriber sub_dock_left = n_public.subscribe("/lidar_left/nearest", 1, cb_left_dock);
  // ros::Subscriber sub_dock_right = n_public.subscribe("/lidar_right/nearest", 1, cb_right_dock);
-  ros::Subscriber sub_nearest_left = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
+  ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
 
 
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
-  vel.angular.z = 1;
 
    try
    {

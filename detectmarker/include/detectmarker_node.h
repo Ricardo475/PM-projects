@@ -31,8 +31,14 @@ geometry_msgs::PoseStamped right_dock;
 tf::TransformListener *listener ;
 image_transport::Publisher imagePub;
 sensor_msgs::ImagePtr imageMsg;
-bool color_red,color_blue,color_green,cross,tri,circle;
 std::string color,shape;
+bool orientation= false,init=true;
+struct dock{
+ bool color_red,color_blue,color_green,cross,tri,circle,identified, avaiability;
+ std::string shape;
+ std::string color;
+};
+dock dock_left,dock_right;
 int counter1 = 0;
 int print_rate = 25;
 #endif
