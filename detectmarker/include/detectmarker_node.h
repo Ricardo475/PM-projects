@@ -7,6 +7,7 @@
 #include <ros/subscriber.h>
 #include <ros/publisher.h>
 #include <math.h>
+#include <std_msgs/String.h>
 ///MSGs includes
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ModelStates.h>
@@ -29,6 +30,8 @@
 
 ///ROS Publisher
 ros::Publisher pub; //Global to be use outside main
+ros::Publisher marker_detected_pub; //Global to be use outside main
+
 geometry_msgs::Twist vel;
 geometry_msgs::PoseStamped pose_out_left;
 geometry_msgs::PoseStamped pose_out_right;
@@ -43,15 +46,16 @@ struct dock{
  bool color_red,color_blue,color_green,cross,tri,circle,identified, avaiability;
  std::string shape;
  std::string color;
+ int corners;
 };
 dock dock_left,dock_right;
-
-bool first = true;
+geometry_msgs::Point::_x_type init_pos_x,init_pos_y,init_pos_rot;
+bool first = true,flag_dock,init_odemetry, need_sensors;
 bool turn_right_on = false;
 int counter_odo = 0;
-int state = 0;
+int state = 0,next_state=0;
 int counter1 = 0;
-int counter2 = 0;
+int counter2 = 0,quart = 1;
 //int stop_rate = 0;
 int print_rate = 50;
 #endif

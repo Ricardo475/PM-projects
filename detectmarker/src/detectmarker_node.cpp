@@ -12,6 +12,7 @@ void heron_stop(){
 
 //Starts going foward (velocity = 1)
 void heron_foward(){
+
   vel.linear.x = 1;
   return;
 }
@@ -58,7 +59,7 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
 
   if (counter_odo>50){
 
-     ROS_INFO("ODOMETRY [X, Y, theta]: [%f, %f, %f]", msg->pose.pose.position.x, msg->pose.pose.position.y,msg->pose.pose.orientation.w);
+     ROS_INFO("ODOMETRY [X, Y, theta]: [%f, %f, %f]   state = %d", msg->pose.pose.position.x, msg->pose.pose.position.y,msg->pose.pose.orientation.w,state);
      counter_odo = 0;
    }
   counter_odo++;
@@ -91,6 +92,141 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
     }
   }
 */
+  //transições
+  switch (state) {
+     case 0:
+        if(abs(msg->pose.pose.position.y)<1 )
+          next_state= 1;
+        break;
+     case 1:
+        if(dock_left.identified)
+          next_state=2;
+        break;
+     case 2:
+        if(dock_left.tri)
+           next_state = 3;
+        else if(dock_left.cross || dock_left.circle)
+           next_state = 6;
+        break;
+     case 3:
+         if(msg->pose.pose.orientation.w < 0.000005)
+           next_state = 4;
+        break;
+     case 4:
+         if(pose_out_left.pose.position.x <= 2 && abs(pose_out_left.pose.position.y) <= 1.5)
+           next_state = 5;
+         else if(pose_out_right.pose.position.x >= -2 && abs(pose_out_right.pose.position.y) <=1.5)
+           next_state = 5;
+        break;
+     case 5:
+        //END
+        break;
+     case 6:
+        if(dock_right.identified)
+          next_state = 7;
+        break;
+     case 7:
+        if(dock_right.tri)
+          next_state = 8;
+        else if(dock_right.circle || (dock_right.cross && dock_left.circle))
+          next_state = 9;
+        else if(dock_right.cross)
+          next_state = 12;
+        break;
+     case 8:
+        if(msg->pose.pose.orientation.w > 0.999995)
+          next_state = 4;
+        break;
+     case 9:
+        if(msg->pose.pose.orientation.w < 0.707376 && quart ==3)
+         next_state = 10;
+        break;
+     case 10:
+        if(msg->pose.pose.position.y < (init_pos_y+1))
+         next_state = 11;
+        break;
+     case 11:
+        if(abs(msg->pose.pose.orientation.w) > 0.707376 && quart ==4)
+          next_state = 5;
+        break;
+     case 12:
+        if(abs(msg->pose.pose.orientation.w) < 0.707376)
+          next_state = 13;
+         break;
+     case 13:
+        //END FOWARD
+        break;
+  }
+  state=next_state;
+  //Outputs
+  switch (state) {
+      case 0:
+          heron_foward();
+          if(abs(msg->pose.pose.position.y)<2.5 && abs(msg->pose.pose.position.y)>1.2)
+             heron_slowdown();
+         break;
+      case 1:
+         heron_stop();
+         heron_rotate('L');
+         break;
+      case 2:
+         heron_stop();
+         break;
+      case 3:
+         heron_rotate('L');
+         break;
+      case 4:
+         need_sensors = true;
+         heron_stop();
+         heron_foward();
+         break;
+      case 5:
+         heron_stop();  // FIM
+         break;
+      case 6:
+         heron_rotate('R');
+         break;
+      case 7:
+         heron_stop();
+         break;
+      case 8:
+         heron_rotate('R');
+         break;
+      case 9:
+         if(msg->pose.pose.orientation.w >0.99)
+           quart = 2;
+         else if(quart== 2 &&  msg->pose.pose.orientation.w < 0.9)
+           quart = 3;
+         heron_rotate('R');
+         break;
+      case 10:
+         heron_stop();
+         heron_foward();
+         if(abs(msg->pose.pose.position.y)>(init_pos_y-2))
+            heron_slowdown();
+         break;
+      case 11:
+        if(msg->pose.pose.orientation.w < 0.1 && quart ==3)
+          quart = 4;
+         heron_stop();
+         heron_rotate('R');
+         break;
+      case 12:
+         heron_rotate('L');
+         break;
+      case 13:
+         heron_stop();
+         heron_foward();
+         break;
+  }
+
+  if(!init_odemetry)
+  {
+    init_odemetry = true;
+    init_pos_x = msg->pose.pose.position.x;
+    init_pos_y = msg->pose.pose.position.y;
+    init_pos_rot = msg->pose.pose.orientation.w;
+  }
   pub.publish(vel);
    return;
 }
@@ -101,8 +237,7 @@ void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
   counter1++;
  listener->transformPose("/base_link", *msg, pose_out_left);
  if(counter1 > print_rate){
-  //  ROS_INFO("NEAREST[L]: [%f, %f]", pose_out_left.pose.position.x,  pose_out_left.pose.position.y);
-    //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
+    ROS_INFO("NEAREST[L]: [%f, %f]", pose_out_left.pose.position.x,  pose_out_left.pose.position.y);
     counter1 = 0;
   }
  return;
@@ -115,8 +250,7 @@ void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
     counter2++;
     listener->transformPose("/base_link", *msg, pose_out_right);
    if(counter2 > print_rate){
-      ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
-      //ROS_INFO("NEAR[R]: %s", near_R ? "yes" : "no");
+//      ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
       counter2 = 0;
     }
   }
@@ -159,7 +293,14 @@ void fill_dock_avaiability(dock& item)
     item.avaiability = true;
   }
 }
-void fill_dock(dock& item,const bool& tri,const bool& cross,const bool& circle,const bool& color_red,const bool& color_blue,const bool& color_green)
+void marker_publish(const std::string& color, const std::string& shape, const std::string& dock)
+{
+  std_msgs::String text;
+  text.data= color+" "+shape+" at "+dock;
+
+  marker_detected_pub.publish(text);
+}
+void fill_dock(dock& item,const bool& tri,const bool& cross,const bool& circle,const bool& color_red,const bool& color_blue,const bool& color_green,const int& corners)
 {
   item.identified = true;
   item.shape = shape;
@@ -170,6 +311,7 @@ void fill_dock(dock& item,const bool& tri,const bool& cross,const bool& circle,c
   item.color_red = color_red;
   item.color_blue = color_blue;
   item.color_green = color_green;
+  item.corners = corners;
 }
 void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -185,7 +327,10 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+
   cv::Mat image = cv_ptr -> image;
+
+   int thresh_low=image.size().width/2-50, thres_high=image.size().width/2+50;
 
   // Convert input image to HSV
   cv::Mat hsv_image,gray_image,mask_thresh;
@@ -275,39 +420,53 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 
         cv::Moments m = cv::moments(img,false);
         cv::Point p(m.m10/m.m00, m.m01/m.m00);
-        if(!color.empty() && !shape.empty())
+
+        if(p.x > thresh_low && p.x < thres_high )
         {
-           if(!dock_right.identified || !dock_left.identified)
-           {
-              ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
-              if(!orientation)
-              {
-                vel.angular.z = -1;
+           //ROS_INFO("Point: %d  TRHESH: [ %d: %d]", p.x,thresh_low, thres_high);
+          if(!color.empty() && !shape.empty())
+          {
 
-                fill_dock(dock_left,tri,cross,circle,color_red,color_blue,color_green);
-                fill_dock_avaiability(dock_left);
+                ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
+                if(!orientation)
+                {
 
-              } else if(orientation)
-              {
-                vel.angular.z = 1;
+                 // ROS_INFO("DOCK_LEFT ITS A %s %s", color.c_str(),shape.c_str());
+                  flag_dock = true;
+                  if(dock_left.corners < count)
+                  {
+                    fill_dock(dock_left,tri,cross,circle,color_red,color_blue,color_green,count);
+                    fill_dock_avaiability(dock_left);
+                    marker_publish(color,shape,"DOCK_LEFT");
+                  }
 
-                fill_dock(dock_right,tri,cross,circle,color_red,color_blue,color_green);
-                fill_dock_avaiability(dock_right);
-              }
+                } else if(orientation)
+                {
+               //   ROS_INFO("DOCK_RIGHT ITS A %s %s", color.c_str(),shape.c_str());
+
+                  flag_dock = false;
+                  if(dock_right.corners < count)
+                  {
+                    fill_dock(dock_right,tri,cross,circle,color_red,color_blue,color_green,count);
+                    fill_dock_avaiability(dock_right);
+                    marker_publish(color,shape,"DOCK_RIGHT");
+                  }
+                }
+
+           /* if(dock_left.identified && dock_right.identified)
+              ROS_INFO("DOCK LEFT: %s   DOCK RIGHT:  %s", dock_left.shape.c_str(), dock_right.shape.c_str());*/
+           /* imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+            imageMsg->header.stamp = ros::Time::now();
+            pub.publish(imageMsg);*/
+
+            /*
+            cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
+            cv::imshow( "image", image);
+
+            // Wait for a keystroke.
+            cv::waitKey(1000);
+            cv::destroyAllWindows();*/
           }
-          if(dock_left.identified && dock_right.identified)
-            ROS_INFO("DOCK LEFT: %s   DOCK RIGHT:  %s", dock_left.shape.c_str(), dock_right.shape.c_str());
-         /* imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
-          imageMsg->header.stamp = ros::Time::now();
-          pub.publish(imageMsg);*/
-
-          /*
-          cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
-          cv::imshow( "image", image);
-
-          // Wait for a keystroke.
-          cv::waitKey(1000);
-          cv::destroyAllWindows();*/
         }
       }
 
@@ -330,9 +489,12 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
     cv::destroyAllWindows();*/
   }
 
-  if(!detect && dock_left.identified)
+  if(!detect)
   {
-    orientation = true;
+    if(flag_dock)
+     orientation = true;
+    else
+     orientation = false;
   }
 
 }
@@ -356,17 +518,23 @@ int main(int argc, char **argv)
   ros::Subscriber sub=n_public.subscribe("/heron/odom",1,cb_odometry);
   if(init)
   {
-    vel.angular.z = 1;
+    state=0;
+    next_state = 0;
     init = false;
+    dock_left.corners=0;
+    dock_right.corners=0;
   }
 
+  if(need_sensors)
+  {
+    ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
+    ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
+  }
 
-  ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
-  ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
-  //ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
-
+  ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
   listener = new tf::TransformListener;
   pub = n_public.advertise<geometry_msgs::Twist>("/cmd_vel",1);
+  marker_detected_pub = n_public.advertise<std_msgs::String>("marker",1);
   //vel.angular.z = 1;
 
    try
