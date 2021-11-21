@@ -168,16 +168,29 @@ catkin_package(
 # )
 
 ## Declare a C++ executable
-add_executable(detectmarker_node src/detectmarker_node.cpp)
+add_executable(usv_servoing_node src/usv_servoing_node.cpp)
 ## Rename C++ executable without prefix
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-set_target_properties(detectmarker_node PROPERTIES OUTPUT_NAME detectmarker PREFIX "")
+set_target_properties(usv_servoing_node PROPERTIES OUTPUT_NAME usv_servoing PREFIX "")
 ## Add cmake target dependencies of the executable
-add_dependencies(detectmarker_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(usv_servoing_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
-target_link_libraries(detectmarker_node ${catkin_LIBRARIES})
+target_link_libraries(usv_servoing_node ${catkin_LIBRARIES})
 
-target_link_libraries(detectmarker_node ${OpenCV_LIBRARIES})
+
+
+## Declare a C++ executable
+add_executable(marker_subscriber_node src/marker_subscriber_node.cpp)
+## Rename C++ executable without prefix
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(marker_subscriber_node PROPERTIES OUTPUT_NAME marker_subscriber PREFIX "")
+## Add cmake target dependencies of the executable
+add_dependencies(marker_subscriber_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+## Specify libraries to link a library or executable target against
+target_link_libraries(marker_subscriber_node ${catkin_LIBRARIES})
+
+
+target_link_libraries(usv_servoing_node ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##

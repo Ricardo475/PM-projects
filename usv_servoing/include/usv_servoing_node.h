@@ -1,5 +1,5 @@
-#ifndef DETECTMARKER_NODE_H
-#define DETECTMARKER_NODE_H
+#ifndef USV_SEROING_NODE_H
+#define USV_SEROING_NODE_H
 
 
 ///ROS include
@@ -50,8 +50,8 @@ struct dock{
 };
 dock dock_left,dock_right;
 geometry_msgs::Point::_x_type init_pos_x,init_pos_y,init_pos_rot;
-bool first = true,flag_dock,init_odemetry, need_sensors;
-bool turn_right_on = false;
+bool flag_dock,init_odemetry, need_sensors;
+bool turn_right_on = false,usv_oriented;
 int counter_odo = 0;
 int state = 0,next_state=0;
 int counter1 = 0;

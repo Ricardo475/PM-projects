@@ -1,5 +1,5 @@
 
-#include "detectmarker_node.h"
+#include "usv_servoing_node.h"
 
 
 //Stop all heron's movement
@@ -95,7 +95,7 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
   //transições
   switch (state) {
      case 0:
-        if(abs(msg->pose.pose.position.y)<1 )
+        if(abs(msg->pose.pose.position.y)<1.25 )
           next_state= 1;
         break;
      case 1:
@@ -109,15 +109,14 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
            next_state = 6;
         break;
      case 3:
-         if(msg->pose.pose.orientation.w < 0.000005)
+         //if(msg->pose.pose.orientation.w < 0.000005)
+         if(usv_oriented)
            next_state = 4;
         break;
      case 4:
-         if(pose_out_left.pose.position.x <= 2 && abs(pose_out_left.pose.position.y) <= 1.5)
+         if(pose_out_left.pose.position.x <= 2 && abs(pose_out_left.pose.position.y) <= 2 && need_sensors)
            next_state = 5;
-         else if(pose_out_right.pose.position.x >= -2 && abs(pose_out_right.pose.position.y) <=1.5)
-           next_state = 5;
-        break;
+         break;
      case 5:
         //END
         break;
@@ -134,7 +133,8 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
           next_state = 12;
         break;
      case 8:
-        if(msg->pose.pose.orientation.w > 0.999995)
+        //if(msg->pose.pose.orientation.w > 0.999995)
+        if(usv_oriented)
           next_state = 4;
         break;
      case 9:
@@ -156,13 +156,14 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
      case 13:
         //END FOWARD
         break;
+
   }
   state=next_state;
   //Outputs
   switch (state) {
       case 0:
           heron_foward();
-          if(abs(msg->pose.pose.position.y)<2.5 && abs(msg->pose.pose.position.y)>1.2)
+          if(abs(msg->pose.pose.position.y)<2.5 && abs(msg->pose.pose.position.y)>1.5)
              heron_slowdown();
          break;
       case 1:
@@ -173,12 +174,15 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
          heron_stop();
          break;
       case 3:
+         need_sensors = true;
          heron_rotate('L');
          break;
       case 4:
-         need_sensors = true;
+
          heron_stop();
          heron_foward();
+         if(pose_out_left.pose.position.x <= 3 && abs(pose_out_left.pose.position.y) <= 3 && need_sensors)
+           heron_slowdown();
          break;
       case 5:
          heron_stop();  // FIM
@@ -190,6 +194,7 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
          heron_stop();
          break;
       case 8:
+         need_sensors = true;
          heron_rotate('R');
          break;
       case 9:
@@ -218,6 +223,7 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
          heron_stop();
          heron_foward();
          break;
+
   }
 
   if(!init_odemetry)
@@ -233,12 +239,14 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
 
 void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
-
-  counter1++;
- listener->transformPose("/base_link", *msg, pose_out_left);
- if(counter1 > print_rate){
-    ROS_INFO("NEAREST[L]: [%f, %f]", pose_out_left.pose.position.x,  pose_out_left.pose.position.y);
-    counter1 = 0;
+  if(need_sensors)
+  {
+    counter1++;
+   listener->transformPose("/base_link", *msg, pose_out_left);
+   if(counter1 > print_rate){
+      ROS_INFO("NEAREST[L]: [%f, %f]", pose_out_left.pose.position.x,  pose_out_left.pose.position.y);
+      counter1 = 0;
+    }
   }
  return;
 }
@@ -246,15 +254,15 @@ void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
 
 void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
-  if(turn_right_on){
-    counter2++;
-    listener->transformPose("/base_link", *msg, pose_out_right);
-   if(counter2 > print_rate){
-//      ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
-      counter2 = 0;
-    }
+  if(need_sensors)
+  {
+      counter2++;
+      listener->transformPose("/base_link", *msg, pose_out_right);
+     if(counter2 > print_rate){
+        ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
+        counter2 = 0;
+      }
   }
-
  return;
 }
 
@@ -426,8 +434,13 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
            //ROS_INFO("Point: %d  TRHESH: [ %d: %d]", p.x,thresh_low, thres_high);
           if(!color.empty() && !shape.empty())
           {
-
-                ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
+                if(p.x < (image.size().width/2 + 5) && p.x > (image.size().width/2 -5))
+                {
+                  usv_oriented = true;
+                }else {
+                  usv_oriented = false;
+                }
+                //ROS_INFO("ITS A %s %s", color.c_str(),shape.c_str());
                 if(!orientation)
                 {
 
@@ -455,9 +468,6 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 
            /* if(dock_left.identified && dock_right.identified)
               ROS_INFO("DOCK LEFT: %s   DOCK RIGHT:  %s", dock_left.shape.c_str(), dock_right.shape.c_str());*/
-           /* imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
-            imageMsg->header.stamp = ros::Time::now();
-            pub.publish(imageMsg);*/
 
             /*
             cv::putText(image,"ITS a "+color+" "+shape,p,cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
@@ -502,12 +512,7 @@ void cb_image_raw_left(const sensor_msgs::ImageConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-  /*if(first)
-   {
-     //pose_out_left.pose.position.x = 100;
-     vel.linear.x = 1;
-     first = !first;
-   }*/
+
 
   //Init the ros system
   ros::init(argc,argv,"detectmarker_node");
@@ -521,15 +526,19 @@ int main(int argc, char **argv)
     state=0;
     next_state = 0;
     init = false;
+    flag_dock = true;
     dock_left.corners=0;
+    dock_left.circle = true;
+    dock_left.identified = true;
+    dock_left.shape = "circle";
+    dock_left.color = "blue";
     dock_right.corners=0;
   }
 
-  if(need_sensors)
-  {
-    ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
-    ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
-  }
+
+  ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
+ // ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
+
 
   ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);
   listener = new tf::TransformListener;
