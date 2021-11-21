@@ -59,39 +59,12 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
 
   if (counter_odo>50){
 
-     ROS_INFO("ODOMETRY [X, Y, theta]: [%f, %f, %f]   state = %d", msg->pose.pose.position.x, msg->pose.pose.position.y,msg->pose.pose.orientation.w,state);
+    // ROS_INFO("ODOMETRY [X, Y, theta]: [%f, %f, %f]   state = %d", msg->pose.pose.position.x, msg->pose.pose.position.y,msg->pose.pose.orientation.w,state);
      counter_odo = 0;
    }
   counter_odo++;
 
-/*
-  //Slowing down
-  if(abs(msg->pose.pose.position.y)<2 && abs(msg->pose.pose.position.y)>1.2){
-    vel.linear.x = 0.5;
-  }
-  //STOPPING AND TURNING -> using when 1 is free
-  if(abs(msg->pose.pose.position.y)<1){
-    vel.linear.x = 0;
-    vel.linear.y = 0;
-    vel.angular.z = 1; //left
-    //vel.angular.z = -1; //right
 
-    turn_right_on = true;
-  }
-
-  //STOPPING TURN
-  if(turn_right_on){
-
-    if(vel.angular.z == 1.0){
-      if(msg->pose.pose.orientation.w < 0.000005)
-          vel.angular.z = 0;
-    }
-    else if(vel.angular.z == -1.0){
-      if(msg->pose.pose.orientation.w > 0.999995)
-          vel.angular.z = 0;
-    }
-  }
-*/
   //transições
   switch (state) {
      case 0:
@@ -114,7 +87,7 @@ void cb_odometry(const nav_msgs::Odometry::ConstPtr &msg)
            next_state = 4;
         break;
      case 4:
-         if(pose_out_left.pose.position.x <= 2 && abs(pose_out_left.pose.position.y) <= 2 && need_sensors)
+         if(pose_out_left.pose.position.x <= 2.2 && (msg->pose.pose.position.x <= -12.2 || msg->pose.pose.position.x >= 12.2) && need_sensors)
            next_state = 5;
          break;
      case 5:
@@ -251,20 +224,6 @@ void cb_nearest_left( const geometry_msgs::PoseStamped::ConstPtr &msg)
  return;
 }
 
-
-void cb_nearest_right( const geometry_msgs::PoseStamped::ConstPtr &msg)
-{
-  if(need_sensors)
-  {
-      counter2++;
-      listener->transformPose("/base_link", *msg, pose_out_right);
-     if(counter2 > print_rate){
-        ROS_INFO("NEAREST[R]: [%f, %f]", pose_out_right.pose.position.x,  pose_out_right.pose.position.y);
-        counter2 = 0;
-      }
-  }
- return;
-}
 
 
 
@@ -526,18 +485,17 @@ int main(int argc, char **argv)
     state=0;
     next_state = 0;
     init = false;
-    flag_dock = true;
+   // flag_dock = true;
     dock_left.corners=0;
-    dock_left.circle = true;
+   /* dock_left.circle = true;
     dock_left.identified = true;
     dock_left.shape = "circle";
-    dock_left.color = "blue";
+    dock_left.color = "blue";*/
     dock_right.corners=0;
   }
 
 
   ros::Subscriber sub_nearest_left = n_public.subscribe("/lidar_left/nearest", 1, cb_nearest_left);
- // ros::Subscriber sub_nearest_right = n_public.subscribe("/lidar_right/nearest", 1, cb_nearest_right);
 
 
   ros::Subscriber left_camera_sub = n_public.subscribe("/camera/left/image_raw", 1, cb_image_raw_left);

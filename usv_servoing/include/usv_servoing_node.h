@@ -57,5 +57,5 @@ int state = 0,next_state=0;
 int counter1 = 0;
 int counter2 = 0,quart = 1;
 //int stop_rate = 0;
-int print_rate = 50;
+int print_rate = 1;
 #endif
