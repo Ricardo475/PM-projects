@@ -1,0 +1,36 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="mynteye">
+  <xacro:macro name="mynteye" params="">
+    <link name = "mynteye_link">
+    <visual>
+      <origin xyz="0.0 -0.06 0.0" rpy="1.5707963 -0.02 1.5707963" />
+      <geometry>
+        <mesh filename="package://heron_sim/models/heron/sensors/mynteye_description/mesh/D-0315.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision name="body">
+      <origin xyz="0.0 -0.06 0.0" rpy="1.5707963 -0.02 1.5707963" />
+      <geometry>
+        <mesh filename="package://heron_sim/models/heron/sensors/mynteye_description/mesh/D-0315.obj" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+    </link>
+    <link name = "mynteye_left_color_link"/>
+    <link name = "mynteye_right_color_link"/>
+
+    <joint name = "joint_leftcam_to_base" type = "fixed">
+      <parent link = "mynteye_link"/>
+      <child  link = "mynteye_left_color_link"/>
+      <origin xyz = "0.0 0.0 0.0"
+        rpy = "0.0 0.0 0.0"/>
+    </joint>
+
+    <joint name = "joint_leftcam_to_rightcam" type = "fixed">
+      <parent link = "mynteye_left_color_link"/>
+      <child  link = "mynteye_right_color_link"/>
+      <origin xyz = "0.12 0.0 0.0"
+        rpy = "0.0 0.0 0.0"/>
+    </joint>
+  </xacro:macro>
+</robot>

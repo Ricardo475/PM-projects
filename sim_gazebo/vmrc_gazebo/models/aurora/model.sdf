@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="aurora">
+    <static>false</static>
+    <link name="base_footprint">
+      <collision name="aurora_collision">
+        <pose>0 0 0 0 0 1.57</pose>
+        <geometry>
+          <mesh><uri>model://aurora_static/meshes/aurora_collision.stl</uri></mesh>
+        </geometry>
+      </collision>
+
+      <visual name="aurora_visual">
+        <cast_shadows>true</cast_shadows>
+        <pose>0 0 0 0 0 1.57</pose>
+        <geometry>
+          <mesh><uri>model://aurora_static/meshes/aurora.dae</uri></mesh>
+        </geometry>
+      </visual>
+    </link>
+    <plugin name="BuoyancyPlugin" filename="libbuoyancy_gazebo_plugin.so">
+      <fluid_density>1000</fluid_density>
+      <fluid_level>0.0</fluid_level>
+      <fluid_drag>5.0</fluid_drag>
+      <link>
+        <name>base_footprint</name>
+        <center_of_volume>0 0 0.5</center_of_volume>
+        <area>0.63</area>
+        <height>0.70</height>
+      </link>
+    </plugin>
+
+    
+  <!--  <plugin name="aurora_controller" filename="libgazebo_ros_planar_move.so">
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom_aurora</odometryTopic>
+      <odometryFrame>odom_aurora</odometryFrame>
+      <odometryRate>50.0</odometryRate>
+      <robotBaseFrame>base_footprint</robotBaseFrame>
+    </plugin>-->
+
+  </model>
+</sdf>

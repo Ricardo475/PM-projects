@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro"
+       name="Heron">
+  <!-- Defines the base vehicle -->
+  <xacro:include filename="$(find heron_sim)/models/heron/heron.urdf.xacro" />
+  <xacro:heron/>
+
+  <xacro:include filename="heron_plugins.urdf.xacro"/>
+  <xacro:plugins/>
+
+<!--  <xacro:include filename="$(find heron_sim)/models/heron/actuators/thruster_layout/gazebo_thruster_config.xacro" />
+  <xacro:usv_thrust_gazebo name="thruster_left"/>
+  <xacro:usv_thrust_gazebo name="thruster_right"/>
+-->
+
+  <xacro:include filename="$(find heron_sim)/models/heron/actuators/thruster_layout/engine.xacro" />
+  <xacro:engine prefix="left" position="-0.53 0.377654 -0.16" />
+  <xacro:engine prefix="right" position="-0.53 -0.377654 -0.16" />
+
+  <xacro:include filename="$(find heron_sim)/models/heron/actuators/thruster_layout/gazebo_thrust_plugin.xacro" />
+  <xacro:usv_thrust_gazebo name="left"/>
+  <xacro:include filename="$(find heron_sim)/models/heron/actuators/thruster_layout/gazebo_thrust_plugin.xacro" />
+  <xacro:usv_thrust_gazebo name="right"/>
+
+</robot>
