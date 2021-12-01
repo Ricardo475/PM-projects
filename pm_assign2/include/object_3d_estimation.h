@@ -4,6 +4,8 @@
 
 ///ROS include
 #include <ros/ros.h>
+#include <ros/subscriber.h>
+#include <ros/publisher.h>
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -27,8 +29,13 @@
 //PCL
 #include<pcl/io/pcd_io.h>
 #include<pcl/point_types.h>
+#include "pcl_ros/point_cloud.h"
+#include "pcl_conversions/pcl_conversions.h"
+#include "pcl_ros/point_cloud.h"
+#include <sensor_msgs/PointCloud2.h>
 
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 //Global vars
-
+ros::Publisher pub;
 #endif
