@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   darknet_ros_msgs
-
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED)

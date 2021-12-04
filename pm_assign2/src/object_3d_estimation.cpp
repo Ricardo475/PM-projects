@@ -29,15 +29,16 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
   pcl::fromROSMsg(inputCloud,*cloud_to_work);
 
-  sensor_msgs::PointCloud2 msg_pub;
+  sensor_msgs::PointCloud2 msg_pub,msg_trasnformed_pub;
   std_msgs::Header header;
 
   pcl::toROSMsg(*cloud_to_work,msg_pub);
 
-  header.frame_id = "velodyne";
+  header.frame_id = "base_link";
   header.stamp    = ros::Time::now();
   msg_pub.header = header;
-  pub.publish(msg_pub);
+  pcl_ros::transformPointCloud("vision_frame",msg_pub,msg_trasnformed_pub,*listener);
+  pub.publish(msg_trasnformed_pub);
 }
 void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -71,5 +72,17 @@ int main(int argc, char **argv)
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
+  listener = new tf::TransformListener;
+
+  try
+  {
+    listener->waitForTransform("/vision_frame", "velodyne", ros::Time::now(), ros::Duration(3.0));
+  }
+  catch (tf::TransformException ex)
+  {
+    ROS_ERROR("%s",ex.what());
+    ros::Duration(1.0).sleep();
+  }
+
   ros::spin();
 }
