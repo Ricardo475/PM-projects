@@ -25,6 +25,8 @@
 #include <opencv2/core.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include "darknet_ros_msgs/BoundingBox.h"
+#include "darknet_ros_msgs/BoundingBoxes.h"
 
 //PCL
 #include<pcl/io/pcd_io.h>
@@ -38,4 +40,5 @@ typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 //Global vars
 ros::Publisher pub;
+cv::Mat glob_image;
 #endif
