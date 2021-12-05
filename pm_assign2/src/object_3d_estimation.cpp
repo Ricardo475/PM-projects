@@ -1,9 +1,9 @@
 #include "object_3d_estimation.h"
 
-void pointToPixel(const float point[3],float pixel[2]){
-  float x = point[0]/(point[2] + 1E-5),y = point[1]/(point[2]+1E-5);
-  pixel[0] = x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2];
-  pixel[1] = y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5];
+void pointToPixel(const float point[3],int pixel[2]){
+  float x = (float) (point[0]/(point[2] + 1E-5)),y = (float)(point[1]/(point[2]+1E-5));
+  pixel[0] =(int) (x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]);
+  pixel[1] = (int)(y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]);
 }
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
@@ -26,27 +26,43 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
 void calc_map_depth(){
 
+  cloud_vision_field.reset(new PointCloud);
+  cloud_vision_field->width = cloud_to_work->width;
+  cloud_vision_field->height = 1;
+  cloud_vision_field->resize(cloud_vision_field->width*cloud_vision_field->height);
+
   for(uint16_t i = 0; i<cloud_to_work->size(); i++)
   {
-    float point[2];
+    int point[2];
     float threedpoint[3];
+
 
     threedpoint[0] = cloud_to_work->points[i].x;
     threedpoint[1] = cloud_to_work->points[i].y;
     threedpoint[2] = cloud_to_work->points[i].z;
 
     pointToPixel(threedpoint,point);
-    ROS_INFO("POINT %d, %d   ",(int) point[0], (int)point[1]);
+    //ROS_INFO("POINT %d, %d   ", point[0],point[1]);
 
     if(point[0]>0 && point[0]< glob_image.size().width)
     {
       if( point[1]>0 && point[1]< glob_image.size().height)
       {
-        depth_map.push_back(cv::Point((int)point[0],(int)point[1]));
-        ROS_INFO("POINT %d, %d  ADDED ",(int) point[0], (int)point[1]);
+        depth_map.push_back(cv::Point(point[0],point[1]));
+        cloud_vision_field->push_back(cloud_to_work->points[i]);
+        ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
+  sensor_msgs::PointCloud2 msg_trasnformed_pub;
+  std_msgs::Header header;
+
+  pcl::toROSMsg(*cloud_vision_field,msg_trasnformed_pub);
+
+  header.frame_id = "vision_frame";
+  header.stamp    = ros::Time::now();
+  msg_trasnformed_pub.header = header;
+  pub.publish(msg_trasnformed_pub);
 }
 void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
@@ -56,19 +72,15 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   cloud_to_work->width = inputCloud.width;
   cloud_to_work->height = 1;
   cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
-  pcl::fromROSMsg(inputCloud,*cloud_to_work);
-
-  sensor_msgs::PointCloud2 msg_pub,msg_trasnformed_pub;
+  sensor_msgs::PointCloud2 msg_trasnformed_pub;
   std_msgs::Header header;
 
-  pcl::toROSMsg(*cloud_to_work,msg_pub);
-
+  pcl_ros::transformPointCloud("vision_frame",inputCloud,msg_trasnformed_pub,*listener);
   header.frame_id = "vision_frame";
   header.stamp    = ros::Time::now();
-  msg_pub.header = header;
-  pcl_ros::transformPointCloud("vision_frame",msg_pub,msg_trasnformed_pub,*listener);
+  msg_trasnformed_pub.header = header;
   pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
-  pub.publish(msg_trasnformed_pub);
+
   flag_cloud = true;
   if(flag_image && flag_cloud)
   {
