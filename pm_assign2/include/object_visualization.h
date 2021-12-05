@@ -1,7 +1,6 @@
 #ifndef PMASSIGN2_NODE_H
 #define PMASSIGN2_NODE_H
 
-
 ///ROS include
 #include <ros/ros.h>
 #include <ros/subscriber.h>
@@ -42,15 +41,10 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-
 //Global vars
 ros::Publisher pub;
-cv::Mat glob_image;
-tf::TransformListener *listener ;
-std::vector<cv::Point2f> depth_map;
-PointCloud::Ptr cloud_to_work;
-sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
+
+
 std::string frame_id;
-bool flag_cloud, flag_image;
+
 #endif

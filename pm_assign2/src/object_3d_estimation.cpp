@@ -47,6 +47,8 @@ void calc_map_depth(){
     }
   }
 }
+
+
 void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
   sensor_msgs::PointCloud2 inputCloud;
@@ -112,6 +114,8 @@ int main(int argc, char **argv)
   ros::init(argc,argv,"pointcloud_node");
   ros::NodeHandle n_public;
   ros::NodeHandle n_private("~"); //Private definition node namespace
+
+  n_private.param<std::string>("frame_id", frame_id , "vision_frame");
   glob_image = cv::Mat();
   //Create a subscriber object
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
@@ -119,6 +123,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
+
  /* listener = new tf::TransformListener;
   try
   {

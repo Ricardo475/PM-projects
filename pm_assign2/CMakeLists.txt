@@ -128,12 +128,6 @@ link_directories(${PCL_LIBRARY_DIRS})
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES pm_assign2
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
-)
 
 ###########
 ## Build ##
@@ -186,6 +180,18 @@ add_dependencies(object_3d_estimation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 target_link_libraries(object_3d_estimation ${catkin_LIBRARIES})
 target_link_libraries(object_3d_estimation ${OpenCV_LIBRARIES})
 target_link_libraries(object_3d_estimation ${PCL_LIBRARIES})
+
+
+add_executable(object_visualization src/object_visualization.cpp)
+## Rename C++ executable without prefix
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+set_target_properties(object_visualization PROPERTIES OUTPUT_NAME object_visualization PREFIX "")
+## Add cmake target dependencies of the executable
+add_dependencies(object_visualization ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+## Specify libraries to link a library or executable target against
+target_link_libraries(object_visualization ${catkin_LIBRARIES})
+target_link_libraries(object_visualization ${OpenCV_LIBRARIES})
+target_link_libraries(object_visualization ${PCL_LIBRARIES})
 
 
 # all install targets should use catkin DESTINATION variables
