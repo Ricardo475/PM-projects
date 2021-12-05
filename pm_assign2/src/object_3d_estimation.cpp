@@ -32,16 +32,17 @@ void calc_map_depth(){
     float threedpoint[3];
 
     threedpoint[0] = cloud_to_work->points[i].x;
-    threedpoint[1] = cloud_to_work->points[i].x;
-    threedpoint[2] = cloud_to_work->points[i].x;
+    threedpoint[1] = cloud_to_work->points[i].y;
+    threedpoint[2] = cloud_to_work->points[i].z;
 
     pointToPixel(threedpoint,point);
+    ROS_INFO("POINT %d, %d   ",(int) point[0], (int)point[1]);
 
     if(point[0]>0 && point[0]< glob_image.size().width)
     {
       if( point[1]>0 && point[1]< glob_image.size().height)
       {
-        depth_map.push_back(cv::Point((int)point[1],(int)point[1]));
+        depth_map.push_back(cv::Point((int)point[0],(int)point[1]));
         ROS_INFO("POINT %d, %d  ADDED ",(int) point[0], (int)point[1]);
       }
     }
@@ -56,7 +57,7 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   cloud_to_work->height = 1;
   cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
   pcl::fromROSMsg(inputCloud,*cloud_to_work);
-  flag_cloud = true;
+
   sensor_msgs::PointCloud2 msg_pub,msg_trasnformed_pub;
   std_msgs::Header header;
 
@@ -65,9 +66,10 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   header.frame_id = "vision_frame";
   header.stamp    = ros::Time::now();
   msg_pub.header = header;
-//  pcl_ros::transformPointCloud("vision_frame",msg_pub,msg_trasnformed_pub,*listener);
-  //pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
- // pub.publish(msg_trasnformed_pub);
+  pcl_ros::transformPointCloud("vision_frame",msg_pub,msg_trasnformed_pub,*listener);
+  pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
+  pub.publish(msg_trasnformed_pub);
+  flag_cloud = true;
   if(flag_image && flag_cloud)
   {
       flag_image = false;
@@ -119,7 +121,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
- /* listener = new tf::TransformListener;
+  listener = new tf::TransformListener;
   try
   {
     listener->waitForTransform("/vision_frame", "velodyne", ros::Time::now(), ros::Duration(3.0));
@@ -129,6 +131,6 @@ int main(int argc, char **argv)
     ROS_ERROR("%s",ex.what());
     ros::Duration(1.0).sleep();
   }
-  */
+
   ros::spin();
 }
