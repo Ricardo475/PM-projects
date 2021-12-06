@@ -1,9 +1,10 @@
 #include "object_3d_estimation.h"
 
-void pointToPixel(const float point[3],int pixel[2]){
-  float x = (float) (point[0]/(point[2] + 1E-5)),y = (float)(point[1]/(point[2]+1E-5));
-  pixel[0] =(int) (x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]);
-  pixel[1] = (int)(y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]);
+void pointToPixel(const float point[3],float pixel[3]){
+  float x =  (point[0]/(point[2] + 1E-5)),y = (point[1]/(point[2]+1E-5));
+  pixel[0] = static_cast<int>((x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]));
+  pixel[1] = static_cast<int>((y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]));
+  pixel[2] = point[2];
 }
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
@@ -23,7 +24,80 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
     cv::destroyAllWindows();
   }
 }
+bool exist_pixel_depth(const std::vector<cv::Point3f> &depth,const int &irow, const int &icol)
+{
+  for(size_t i=0;i<depth.size();i++)
+  {
+    if(depth.at(i).x == icol && depth.at(i).y == irow)
+      return true;
+  }
+  return false;
+}
+void image_create_from_depth_map(cv::Mat &src, cv::Mat &dst, const std::vector<cv::Point3f> &depth)
+{
+  dst = cv::Mat::zeros(src.rows, src.cols, CV_8UC1);
+  for(int irow = 0; irow < src.rows; irow++)
+  {
+    uchar * pixel     = src.ptr<uchar>(irow);
+    uchar * pixel_mask = dst.ptr<uchar>(irow);
+    for(int icol = 0; icol < src.cols; icol++)
+    {
+      if(exist_pixel_depth(depth,irow,icol))
+        pixel_mask[icol] = 255;
+    }
+  }
+  return;
+}
+bool inside_boundary(const cv::Point3f& point,const float& t_x_min,const float& t_x_max,const float& t_y_min,const float& t_y_max)
+{
+  return point.x > t_x_min && point.x < t_x_max && point.y > t_y_min && point.y < t_y_max;
+}
+float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
+{
+  float min_dist = 9999;
+  float thresh_x_min = (carr.xmax - carr.xmin)/6 + carr.xmin,
+        thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
+        thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
+        thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
 
+  for(size_t i=0; i< depth_map.size(); i++)
+  {
+
+    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) )
+    {
+      if(min_dist > (depth_map.at(i).z))
+      {
+        min_dist = (depth_map.at(i).z);
+      }
+    }
+  }
+  return min_dist;
+}
+void calc_closest_car(){
+
+  darknet_ros_msgs::BoundingBox closest_car;
+  float min_dist = 9999;
+
+  for(uint8_t i = 0; i< detections.bounding_boxes.size();i++)
+      {
+        if(detections.bounding_boxes.at(i).Class == "car")
+        {
+          darknet_ros_msgs::BoundingBox carr = detections.bounding_boxes.at(i);
+          float dist = check_dist_to_car(carr);
+          if(min_dist > dist)
+          {
+            closest_car = carr;
+            min_dist = dist;
+          }
+        }
+      }
+  ROS_INFO("DIST: %.2f ",min_dist);
+
+ /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
+  cv::imshow("darknet iamge", glob_image );
+  cv::waitKey();
+  cv::destroyAllWindows();*/
+}
 void calc_map_depth(){
 
   cloud_vision_field.reset(new PointCloud);
@@ -33,27 +107,35 @@ void calc_map_depth(){
 
   for(uint16_t i = 0; i<cloud_to_work->size(); i++)
   {
-    int point[2];
+    float point[3];
     float threedpoint[3];
 
 
     threedpoint[0] = cloud_to_work->points[i].x;
     threedpoint[1] = cloud_to_work->points[i].y;
     threedpoint[2] = cloud_to_work->points[i].z;
-
     pointToPixel(threedpoint,point);
-    //ROS_INFO("POINT %d, %d   ", point[0],point[1]);
 
-    if(point[0]>0 && point[0]< glob_image.size().width)
+    if(point[0]>=0 && point[0]<= cam_width)
     {
-      if( point[1]>0 && point[1]< glob_image.size().height)
+      if( point[1]>=0 && point[1]<= cam_height && point [2] >0)
       {
-        depth_map.push_back(cv::Point(point[0],point[1]));
+
+        depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+        //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
-        ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
+       // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
+
+  /*cv::Mat image_depth;
+  image_create_from_depth_map(glob_image,image_depth,depth_map);
+
+  cv::imshow("depth iamge", image_depth);
+  cv::waitKey();
+  cv::destroyAllWindows();*/
+
   sensor_msgs::PointCloud2 msg_trasnformed_pub;
   std_msgs::Header header;
 
@@ -78,17 +160,17 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   std_msgs::Header header;
 
   pcl_ros::transformPointCloud(frame_id,inputCloud,msg_trasnformed_pub,*listener);
-  header.frame_id = frame_id;
-  header.stamp    = ros::Time::now();
-  msg_trasnformed_pub.header = header;
+
   pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
 
   flag_cloud = true;
-  if(flag_image && flag_cloud)
+  if(flag_image && flag_cloud && flag_detections)
   {
       flag_image = false;
       flag_cloud = false;
+      flag_detections = false;
       calc_map_depth();
+      calc_closest_car();
   }
 }
 void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
@@ -106,21 +188,35 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
   cv::Mat image = cv_ptr -> image;
   glob_image = image;
   flag_image = true;
-  if(flag_image && flag_cloud)
+  if(flag_image && flag_cloud && flag_detections)
   {
       flag_image = false;
       flag_cloud = false;
+      flag_detections = false;
       calc_map_depth();
+      calc_closest_car();
   }
 }
 void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 {
   intrinsic_matrix = camera_inf.K;
+  cam_width = static_cast<int>(camera_inf.width);
+  cam_height = static_cast<int>(camera_inf.height);
   //std::cout<< "IT: "<<intrinsic_matrix.elems[0]<<" "<<intrinsic_matrix.elems[1]<<" "<<intrinsic_matrix.elems[2]<<"\n"<<intrinsic_matrix.elems[3]<<" "<<intrinsic_matrix.elems[4]<<" "<<intrinsic_matrix.elems[5]<<"\n"<<intrinsic_matrix.elems[6]<<" "<<intrinsic_matrix.elems[7]<<" "<<intrinsic_matrix.elems[8]<<std::endl;
 }
 void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
 {
+  detections = msg;
+  flag_detections = true;
   //draw_rectangles(msg);
+  if(flag_image && flag_cloud && flag_detections)
+  {
+      flag_image = false;
+      flag_cloud = false;
+      flag_detections = false;
+      calc_map_depth();
+      calc_closest_car();
+  }
 }
 int main(int argc, char **argv)
 {

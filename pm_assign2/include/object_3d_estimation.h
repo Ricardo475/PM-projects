@@ -48,9 +48,11 @@ typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 ros::Publisher pub;
 cv::Mat glob_image;
 tf::TransformListener *listener ;
-std::vector<cv::Point2f> depth_map;
+std::vector<cv::Point3f> depth_map;
 PointCloud::Ptr cloud_to_work,cloud_vision_field;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::string frame_id;
-bool flag_cloud, flag_image;
+bool flag_cloud, flag_image, flag_detections;
+darknet_ros_msgs::BoundingBoxes detections;
+int cam_width, cam_height;
 #endif
