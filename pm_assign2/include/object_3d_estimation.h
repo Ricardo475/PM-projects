@@ -28,7 +28,7 @@
 #include "darknet_ros_msgs/BoundingBox.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
-//PCL
+///PCL
 #include<pcl/io/pcd_io.h>
 #include<pcl/point_types.h>
 #include "pcl_ros/point_cloud.h"
@@ -42,6 +42,9 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 
+///Defines
+
+#define MAX_DEPTH 30
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 //Global vars

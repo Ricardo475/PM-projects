@@ -60,6 +60,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
         thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
 
+  cv::Point3f aux_depth_map;
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
@@ -68,9 +69,13 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
       if(min_dist > (depth_map.at(i).z))
       {
         min_dist = (depth_map.at(i).z);
+        aux_depth_map = depth_map.at(i);
       }
     }
   }
+
+  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
+
   return min_dist;
 }
 void calc_closest_car(){
@@ -84,7 +89,9 @@ void calc_closest_car(){
         {
           darknet_ros_msgs::BoundingBox carr = detections.bounding_boxes.at(i);
           float dist = check_dist_to_car(carr);
-          if(min_dist > dist)
+          //ROS_INFO("SIZE: [%.2f ; %.2f]", float(carr.xmax) , float(carr.ymax));
+
+          if(min_dist > dist && (carr.xmax - carr.xmin) > 50 && (carr.ymax- carr.ymin) > 50)
           {
             closest_car = carr;
             min_dist = dist;
@@ -92,15 +99,18 @@ void calc_closest_car(){
           }
         }
       }
+
+
   ROS_INFO("DIST: %.2f ",min_dist);
 
   if(closest_car_find)
   {
 
-    cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
-    cv::imshow("darknet iamge", imageROI );
-    cv::waitKey();
-    cv::destroyAllWindows();
+    ROS_INFO("COORD_IMAGE: [%.2f ; %.2f] | SIZE: [%.2f ; %.2f]", float(closest_car.xmin), float(closest_car.ymin) , float(closest_car.xmax- closest_car.xmin) , float(closest_car.ymax - closest_car.ymin));
+      cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
+      //cv::imshow("closest car", imageROI );
+      //cv::waitKey();
+      //cv::destroyAllWindows();
   }
 
  /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
@@ -139,7 +149,8 @@ void calc_map_depth(){
     }
   }
 
-  /*cv::Mat image_depth;
+/*
+  cv::Mat image_depth;
   image_create_from_depth_map(glob_image,image_depth,depth_map);
 
   cv::imshow("depth iamge", image_depth);
@@ -210,9 +221,10 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 {
   intrinsic_matrix = camera_inf.K;
-  cam_width = static_cast<int>(camera_inf.width);
-  cam_height = static_cast<int>(camera_inf.height);
+  cam_width = static_cast<int>(camera_inf.width + 200);
+  cam_height = static_cast<int>(camera_inf.height + 200);
   //std::cout<< "IT: "<<intrinsic_matrix.elems[0]<<" "<<intrinsic_matrix.elems[1]<<" "<<intrinsic_matrix.elems[2]<<"\n"<<intrinsic_matrix.elems[3]<<" "<<intrinsic_matrix.elems[4]<<" "<<intrinsic_matrix.elems[5]<<"\n"<<intrinsic_matrix.elems[6]<<" "<<intrinsic_matrix.elems[7]<<" "<<intrinsic_matrix.elems[8]<<std::endl;
+
 }
 void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
 {
