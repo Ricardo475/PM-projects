@@ -44,7 +44,7 @@
 //Global vars
 ros::Publisher pub;
 
-
+sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::string frame_id;
 
 #endif
