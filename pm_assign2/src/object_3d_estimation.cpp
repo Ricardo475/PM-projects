@@ -77,7 +77,7 @@ void calc_closest_car(){
 
   darknet_ros_msgs::BoundingBox closest_car;
   float min_dist = 9999;
-
+  bool closest_car_find= false;
   for(uint8_t i = 0; i< detections.bounding_boxes.size();i++)
       {
         if(detections.bounding_boxes.at(i).Class == "car")
@@ -88,10 +88,20 @@ void calc_closest_car(){
           {
             closest_car = carr;
             min_dist = dist;
+            closest_car_find = true;
           }
         }
       }
   ROS_INFO("DIST: %.2f ",min_dist);
+
+  if(closest_car_find)
+  {
+
+    cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
+    cv::imshow("darknet iamge", imageROI );
+    cv::waitKey();
+    cv::destroyAllWindows();
+  }
 
  /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
   cv::imshow("darknet iamge", glob_image );
