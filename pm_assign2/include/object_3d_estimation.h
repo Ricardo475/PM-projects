@@ -46,13 +46,15 @@
 
 #define MAX_DEPTH 30
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
 
 //Global vars
 ros::Publisher pub,pub_car;
 cv::Mat glob_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
-PointCloud::Ptr cloud_to_work,cloud_vision_field,cloud_car;
+PointCloud::Ptr cloud_to_work,cloud_vision_field;
+PointCloudRGB::Ptr cloud_car;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::string frame_id;
 bool flag_cloud, flag_image, flag_detections;

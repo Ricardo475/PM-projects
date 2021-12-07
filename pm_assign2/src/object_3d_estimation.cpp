@@ -114,7 +114,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
   float pixel[3];
   float point[3];
-  cloud_car.reset(new PointCloud);
+  cloud_car.reset(new PointCloudRGB);
   cloud_car->width = cloud_to_work->width;
   cloud_car->height = 1;
   cloud_car->resize(cloud_car->width*cloud_car->height);
@@ -128,7 +128,15 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
       pixel[1] = depth_map.at(i).y;
       pixel[2] = depth_map.at(i).z;
       pixelToPoint(pixel,point);
-      cloud_car->push_back(pcl::PointXYZ(point[0],point[1],point[2]));
+      pcl::PointXYZRGB cloud_point;
+      cloud_point._PointXYZRGB::x = point[0];
+      cloud_point.PointXYZRGB::y = point[1];
+      cloud_point.PointXYZRGB::z = point[2];
+      cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +0)];
+      cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
+      cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
+
+      cloud_car->push_back(cloud_point);
     }
   }
 
@@ -324,7 +332,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
-  pub_car = n_public.advertise<PointCloud> ("/stereo/car_pointcloud", 1);
+  pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
 
   listener = new tf::TransformListener;
   try
