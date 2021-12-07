@@ -221,8 +221,8 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 {
   intrinsic_matrix = camera_inf.K;
-  cam_width = static_cast<int>(camera_inf.width + 200);
-  cam_height = static_cast<int>(camera_inf.height + 200);
+  cam_width = static_cast<int>(camera_inf.width);
+  cam_height = static_cast<int>(camera_inf.height);
   //std::cout<< "IT: "<<intrinsic_matrix.elems[0]<<" "<<intrinsic_matrix.elems[1]<<" "<<intrinsic_matrix.elems[2]<<"\n"<<intrinsic_matrix.elems[3]<<" "<<intrinsic_matrix.elems[4]<<" "<<intrinsic_matrix.elems[5]<<"\n"<<intrinsic_matrix.elems[6]<<" "<<intrinsic_matrix.elems[7]<<" "<<intrinsic_matrix.elems[8]<<std::endl;
 
 }
