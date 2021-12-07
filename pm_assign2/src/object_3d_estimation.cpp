@@ -25,7 +25,7 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
       //cv::putText(glob_image,"type: "+msg.bounding_boxes.at(i).Class+" prob: "+ std::to_string(prob),cv::Point(msg.bounding_boxes.at(i).ymin,msg.bounding_boxes.at(i).ymin),cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
     }
 
-    cv::imshow("darknet iamge", glob_image );
+    cv::imshow("darknet image", glob_image );
     cv::waitKey();
     cv::destroyAllWindows();
   }
@@ -91,7 +91,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 
     if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) )
     {
-      result = norm_dist(depth_map.at((i)));
+      result = norm_dist(depth_map.at(i));
       if(min_dist > result)
       {
         min_dist = result;
@@ -149,12 +149,13 @@ void calc_closest_car(){
   darknet_ros_msgs::BoundingBox closest_car;
   float min_dist = 9999;
   bool closest_car_find= false;
+
   for(uint8_t i = 0; i< detections.bounding_boxes.size();i++)
       {
         if(detections.bounding_boxes.at(i).Class == "car")
         {
           darknet_ros_msgs::BoundingBox carr = detections.bounding_boxes.at(i);
-          float dist = check_dist_to_car(carr);
+          float dist = check_dist_to_car(carr);   
           //ROS_INFO("SIZE: [%.2f ; %.2f]", float(carr.xmax) , float(carr.ymax));
 
           if(min_dist > dist && (carr.xmax - carr.xmin) > 50 && (carr.ymax- carr.ymin) > 50)
@@ -165,7 +166,6 @@ void calc_closest_car(){
           }
         }
       }
-
 
   //ROS_INFO("DIST: %.2f ",min_dist);
 
@@ -194,6 +194,7 @@ void calc_map_depth(){
   cloud_vision_field->height = 1;
   cloud_vision_field->resize(cloud_vision_field->width*cloud_vision_field->height);
   depth_map.clear();
+
   for(uint16_t i = 0; i<cloud_to_work->size(); i++)
   {
     float point[3];
@@ -299,6 +300,7 @@ void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
 {
   detections = msg;
   flag_detections = true;
+
   //draw_rectangles(msg);
   if(flag_image && flag_cloud && flag_detections)
   {
@@ -307,7 +309,9 @@ void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
       flag_detections = false;
       calc_map_depth();
       calc_closest_car();
+
   }
+  pub_visualization.publish(detections); //preciso de todos os carros no "object_visualization" :)
 }
 int main(int argc, char **argv)
 {
@@ -325,6 +329,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloud> ("/stereo/car_pointcloud", 1);
+  pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
 
   listener = new tf::TransformListener;
   try

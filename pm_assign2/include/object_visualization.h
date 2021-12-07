@@ -27,7 +27,7 @@
 #include "darknet_ros_msgs/BoundingBox.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
-//PCL
+///PCL
 #include<pcl/io/pcd_io.h>
 #include<pcl/point_types.h>
 #include "pcl_ros/point_cloud.h"
@@ -43,8 +43,10 @@
 
 //Global vars
 ros::Publisher pub;
-
+cv::Mat glob_image;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::string frame_id;
+tf::TransformListener *listener ;
+std::vector<float> dists;
 
 #endif
