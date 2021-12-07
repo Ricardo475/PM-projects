@@ -138,7 +138,7 @@ void calc_map_depth(){
 
     if(point[0]>=0 && point[0]<= cam_width)
     {
-      if( point[1]>=0 && point[1]<= cam_height && point [2] >0)
+      if( point[1]>=0 && point[1]<= cam_height && point [2] >0 && point[2]<MAX_DEPTH)
       {
 
         depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
