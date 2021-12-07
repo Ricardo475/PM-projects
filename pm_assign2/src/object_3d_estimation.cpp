@@ -134,7 +134,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
       cloud_point.PointXYZRGB::z = point[2];
       cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +0)];
       cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
-      cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
+      cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +2)];
 
       cloud_car->push_back(cloud_point);
     }
