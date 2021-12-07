@@ -82,7 +82,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
         thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
         thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
-  cv::Point3f aux_depth_map;
+  //cv::Point3f aux_depth_map;
   //ROS_INFO(" ");
   //ROS_INFO(" ");
   //ROS_INFO(" ");
@@ -95,7 +95,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
       if(min_dist > result)
       {
         min_dist = result;
-        aux_depth_map = depth_map.at(i);   // what is this??
+       // aux_depth_map = depth_map.at(i);
       }
 
     }
