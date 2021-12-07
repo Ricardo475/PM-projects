@@ -6,6 +6,12 @@ void pointToPixel(const float point[3],float pixel[3]){
   pixel[1] = static_cast<int>((y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]));
   pixel[2] = point[2];
 }
+void pixelToPoint(const float pixel[3],float point[3])
+{
+  point[0] = (pixel[0] - intrinsic_matrix.elems[2]) * pixel[2]/(intrinsic_matrix.elems[0]+1E-5);
+  point[1] = (pixel[1] - intrinsic_matrix.elems[5]) * pixel[2]/(intrinsic_matrix.elems[4]+1E-5);
+  point[2] = pixel[2];
+}
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
   if(glob_image.ptr() != nullptr)
@@ -52,34 +58,94 @@ bool inside_boundary(const cv::Point3f& point,const float& t_x_min,const float& 
 {
   return point.x > t_x_min && point.x < t_x_max && point.y > t_y_min && point.y < t_y_max;
 }
+float norm_dist(cv::Point3f& pixel)
+{
+  float coord[3],pixel3f[3];
+
+  pixel3f[0] = pixel.x;
+  pixel3f[1] = pixel.y;
+  pixel3f[2] = pixel.z;
+
+  pixelToPoint(pixel3f,coord);
+
+  if(erase_this)
+  {
+    //ROS_INFO("MINIMUM CAR AT  [ %.2f, %.2f, %.2f ]   with dist:  %.2f",coord[0], coord[1], coord[2], cv::sqrt(coord[0] * coord[0] + coord[1]*coord[1] + coord[2]*coord[2]));
+  }
+  return cv::sqrt(coord[0] * coord[0] + coord[1]*coord[1] + coord[2]*coord[2]);
+}
 float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 {
   float min_dist = 9999;
+  float result;
   float thresh_x_min = (carr.xmax - carr.xmin)/6 + carr.xmin,
         thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
         thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
-
   cv::Point3f aux_depth_map;
+  //ROS_INFO(" ");
+  //ROS_INFO(" ");
+  //ROS_INFO(" ");
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
     if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) )
     {
-      if(min_dist > (depth_map.at(i).z))
+      result = norm_dist(depth_map.at((i)));
+      if(min_dist > result)
       {
-        min_dist = (depth_map.at(i).z);
-        aux_depth_map = depth_map.at(i);
+        min_dist = result;
+        aux_depth_map = depth_map.at(i);   // what is this??
       }
+
     }
   }
 
-  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
+//  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
 
   return min_dist;
 }
+
+void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
+{
+  float thresh_x_min = (carr.xmax - carr.xmin)/6 + carr.xmin,
+        thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
+        thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
+        thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
+  float pixel[3];
+  float point[3];
+  cloud_car.reset(new PointCloud);
+  cloud_car->width = cloud_to_work->width;
+  cloud_car->height = 1;
+  cloud_car->resize(cloud_car->width*cloud_car->height);
+
+  for(size_t i=0; i< depth_map.size(); i++)
+  {
+
+    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) )
+    {
+      pixel[0] = depth_map.at(i).x;
+      pixel[1] = depth_map.at(i).y;
+      pixel[2] = depth_map.at(i).z;
+      pixelToPoint(pixel,point);
+      cloud_car->push_back(pcl::PointXYZ(point[0],point[1],point[2]));
+    }
+  }
+
+
+  sensor_msgs::PointCloud2 msg_trasnformed_pub;
+  std_msgs::Header header;
+
+  pcl::toROSMsg(*cloud_car,msg_trasnformed_pub);
+
+  header.frame_id = frame_id;
+  header.stamp    = ros::Time::now();
+  msg_trasnformed_pub.header = header;
+  pub_car.publish(msg_trasnformed_pub);
+}
 void calc_closest_car(){
 
+  erase_this = false;
   darknet_ros_msgs::BoundingBox closest_car;
   float min_dist = 9999;
   bool closest_car_find= false;
@@ -101,16 +167,19 @@ void calc_closest_car(){
       }
 
 
-  ROS_INFO("DIST: %.2f ",min_dist);
+  //ROS_INFO("DIST: %.2f ",min_dist);
 
   if(closest_car_find)
   {
+    erase_this = true;
+    make_car_point_cloud(closest_car);
+    cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
 
-    ROS_INFO("COORD_IMAGE: [%.2f ; %.2f] | SIZE: [%.2f ; %.2f]", float(closest_car.xmin), float(closest_car.ymin) , float(closest_car.xmax- closest_car.xmin) , float(closest_car.ymax - closest_car.ymin));
-      cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
-      //cv::imshow("closest car", imageROI );
-      //cv::waitKey();
-      //cv::destroyAllWindows();
+    // Create a window.
+    cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
+    cv::imshow("closest car", imageROI );
+    cv::waitKey(1000);
+    cv::destroyAllWindows();
   }
 
  /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
@@ -124,7 +193,7 @@ void calc_map_depth(){
   cloud_vision_field->width = cloud_to_work->width;
   cloud_vision_field->height = 1;
   cloud_vision_field->resize(cloud_vision_field->width*cloud_vision_field->height);
-
+  depth_map.clear();
   for(uint16_t i = 0; i<cloud_to_work->size(); i++)
   {
     float point[3];
@@ -255,6 +324,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
+  pub_car = n_public.advertise<PointCloud> ("/stereo/car_pointcloud", 1);
 
   listener = new tf::TransformListener;
   try
