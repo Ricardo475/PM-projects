@@ -27,6 +27,7 @@
 #include <image_transport/image_transport.h>
 #include "darknet_ros_msgs/BoundingBox.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
+#include <pcl_msgs/PolygonMesh.h>
 
 ///PCL
 #include<pcl/io/pcd_io.h>
@@ -36,11 +37,17 @@
 #include "pcl_ros/point_cloud.h"
 #include <sensor_msgs/PointCloud2.h>
 #include "pcl_ros/transforms.h"
+#include <pcl/features/normal_3d.h>
+#include <pcl/surface/gp3.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
+#include <shape_msgs/Mesh.h>
 
 ///TF includes
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
+
 
 ///Defines
 
@@ -49,7 +56,7 @@ typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
 
 //Global vars
-ros::Publisher pub,pub_car,pub_visualization;
+ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh;
 cv::Mat glob_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
@@ -60,6 +67,6 @@ std::string frame_id;
 bool flag_cloud, flag_image, flag_detections;
 darknet_ros_msgs::BoundingBoxes detections;
 int cam_width, cam_height;
-
+float car_min_dist=0;
 bool erase_this = false;
 #endif

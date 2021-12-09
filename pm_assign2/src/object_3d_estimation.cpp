@@ -94,6 +94,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
       result = norm_dist(depth_map.at(i));
       if(min_dist > result)
       {
+
         min_dist = result;
        // aux_depth_map = depth_map.at(i);
       }
@@ -122,7 +123,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
-    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) )
+    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) && norm_dist(depth_map.at(i)) < (car_min_dist + 3)) //dar 3m de offset devido ao comprimento de um carro normal
     {
       pixel[0] = depth_map.at(i).x;
       pixel[1] = depth_map.at(i).y;
@@ -140,16 +141,108 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
     }
   }
 
+/*  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+  cloud.reset(new PointCloud);
+  cloud->width = cloud_car->width;
+  cloud->height = 1;
+  cloud->resize(cloud_car->width*cloud_car->height);
 
-  sensor_msgs::PointCloud2 msg_trasnformed_pub;
-  std_msgs::Header header;
+  pcl::copyPointCloud(*cloud_car,*cloud);
 
-  pcl::toROSMsg(*cloud_car,msg_trasnformed_pub);
+  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
+  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
 
-  header.frame_id = frame_id;
-  header.stamp    = ros::Time::now();
-  msg_trasnformed_pub.header = header;
-  pub_car.publish(msg_trasnformed_pub);
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+  tree->setInputCloud (cloud);
+  n.setInputCloud (cloud);
+  n.setSearchMethod (tree);
+  n.setKSearch (20);
+  n.compute (*normals);
+
+  // Concatenate the XYZ and normal fields*
+  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals (new pcl::PointCloud<pcl::PointNormal>);
+  pcl::concatenateFields (*cloud, *normals, *cloud_with_normals);
+
+  // Create search tree*
+ pcl::search::KdTree<pcl::PointNormal>::Ptr tree2 (new pcl::search::KdTree<pcl::PointNormal>);
+  tree2->setInputCloud (cloud_with_normals);
+
+  // Initialize objects
+ pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
+ pcl::PolygonMesh triangles;
+
+ // Set the maximum distance between connected points (maximum edge length)
+ gp3.setSearchRadius (0.025);            //It was 0.025
+ // Set typical values for the parameters
+ gp3.setMu (2.5);                                            //It was 2.5
+ gp3.setMaximumNearestNeighbors (100);    //It was 100
+ gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees    //it was 4
+ gp3.setMinimumAngle(M_PI/18); // 10 degrees        //It was 18
+ gp3.setMaximumAngle(M_PI/1.5); // 120 degrees        //it was 1.5
+ gp3.setNormalConsistency(false);                    //It was false
+
+ // Get result
+ gp3.setInputCloud (cloud_with_normals);
+ gp3.setSearchMethod (tree2);
+ gp3.reconstruct (triangles);
+
+ //publish mesh
+ pcl_msgs::PolygonMesh msg_poly;
+ shape_msgs::Mesh::Ptr ros_mesh_ptr;
+ pcl_conversions::fromPCL(triangles,msg_poly);
+
+ sensor_msgs::PointCloud2Modifier pcd_modifier(msg_poly.cloud);
+
+ size_t size = pcd_modifier.size();
+ ros_mesh_ptr.reset(new shape_msgs::Mesh);
+ ros_mesh_ptr->vertices.resize(size);
+
+ ROS_INFO_STREAM("polys: " << msg_poly.polygons.size()
+                           << " vertices: " << pcd_modifier.size());
+
+ sensor_msgs::PointCloud2ConstIterator<float> pt_iter(msg_poly.cloud, "x");
+
+ for (size_t i = 0u; i < size; i++, ++pt_iter) {
+   ros_mesh_ptr->vertices[i].x = pt_iter[0];
+   ros_mesh_ptr->vertices[i].y = pt_iter[1];
+   ros_mesh_ptr->vertices[i].z = pt_iter[2];
+ }
+
+ ROS_INFO_STREAM("Updated vertices");
+
+ ros_mesh_ptr->triangles.resize(triangles.polygons.size());
+
+ for (size_t i = 0u; i < triangles.polygons.size(); ++i) {
+   if (triangles.polygons[i].vertices.size() < 3u) {
+     ROS_WARN_STREAM("Not enough points in polygon. Ignoring it.");
+     continue;
+   }
+
+   for (size_t j = 0u; j < 3u; ++j) {
+     ros_mesh_ptr->triangles[i].vertex_indices[j] =
+         triangles.polygons[i].vertices[j];
+   }
+ }
+ ROS_INFO("Conversion from PCL PolygonMesh to ROS Mesh ended.");*/
+ std_msgs::Header header;
+
+ header.frame_id = frame_id;
+ header.stamp    = ros::Time::now();
+// msg_poly.header = header;
+
+// pub_car_mesh.publish(msg_poly);
+
+ sensor_msgs::PointCloud2 msg_trasnformed_pub;
+
+// pub_car_mesh.publish(ros_mesh_ptr);
+
+
+ pcl::toROSMsg(*cloud_car,msg_trasnformed_pub);
+
+ header.frame_id = frame_id;
+ header.stamp    = ros::Time::now();
+ msg_trasnformed_pub.header = header;
+ pub_car.publish(msg_trasnformed_pub);
 }
 void calc_closest_car(){
 
@@ -170,6 +263,7 @@ void calc_closest_car(){
           {
             closest_car = carr;
             min_dist = dist;
+            car_min_dist = min_dist;
             closest_car_find = true;
           }
         }
@@ -182,12 +276,20 @@ void calc_closest_car(){
     erase_this = true;
     make_car_point_cloud(closest_car);
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
+    cv::Mat gray_image;
+    cv::cvtColor(imageROI,gray_image,cv::COLOR_BGR2GRAY);
+    /*cv::GaussianBlur(gray_image,gray_image,cv::Size(7,7),0);
 
+    cv::Mat edges;
+    cv::Canny(gray_image,edges,50,100);
+    cv::dilate(edges,edges,NULL,cv::Point(-1,-1),1);
+    cv::erode(edges,edges,NULL);*/
     // Create a window.
     cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
-    cv::imshow("closest car", imageROI );
-    cv::waitKey(1000);
+    cv::imshow("closest car", gray_image );
+    cv::waitKey();
     cv::destroyAllWindows();
+
   }
 
  /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
@@ -338,7 +440,8 @@ int main(int argc, char **argv)
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
-
+  pub_pose = n_public.advertise<geometry_msgs::Pose>("/car_pose",1);
+  pub_car_mesh = n_public.advertise<shape_msgs::Mesh>("/stereo/car_mesh",1);
 
   listener = new tf::TransformListener;
   try
