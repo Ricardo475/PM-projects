@@ -27,6 +27,7 @@
 #include "darknet_ros_msgs/BoundingBox.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
+
 ///PCL
 #include<pcl/io/pcd_io.h>
 #include<pcl/point_types.h>
@@ -35,6 +36,16 @@
 #include "pcl_ros/point_cloud.h"
 #include <sensor_msgs/PointCloud2.h>
 #include "pcl_ros/transforms.h"
+#include <pcl/features/normal_3d.h>
+
+
+//PCL Registration
+#include <pcl/registration/icp.h>
+#include <pcl/registration/icp_nl.h>
+#include <pcl/registration/registration.h>
+#include <pcl/registration/ndt.h>
+#include <pcl/registration/gicp.h>
+
 
 ///TF includes
 #include <tf/tf.h>
