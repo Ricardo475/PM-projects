@@ -220,12 +220,29 @@ void calc_map_depth(){
       {
 
         depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
        // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
+
+  //
+  //IDEIA - ADICIONAR AQUI AS CORES AO cloud_vision_field a partir da
+  //        glob_image
+  //
+
+  pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
+
+  for(uint16_t i = 0; i<depth_map.size(); i++)
+  {
+
+
+  }
+
+
+
 
 /*
   cv::Mat image_depth;
@@ -238,7 +255,9 @@ void calc_map_depth(){
   sensor_msgs::PointCloud2 msg_trasnformed_pub;
   std_msgs::Header header;
 
+  //ROS_ERROR("error in to");
   pcl::toROSMsg(*cloud_vision_field,msg_trasnformed_pub);
+  //ROS_ERROR("error in to");
 
   header.frame_id = frame_id;
   header.stamp    = ros::Time::now();
@@ -249,18 +268,52 @@ void calc_map_depth(){
 
 void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
-  sensor_msgs::PointCloud2 inputCloud;
-  inputCloud = *input;
-  cloud_to_work.reset(new PointCloud);
-  cloud_to_work->width = inputCloud.width;
-  cloud_to_work->height = 1;
-  cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
-  sensor_msgs::PointCloud2 msg_trasnformed_pub;
-  std_msgs::Header header;
 
+  //RGB STILL NOT WORKING FFS
+  /*
+
+  sensor_msgs::PointCloud2 inputCloud;
+  sensor_msgs::PointCloud2 msg_trasnformed_pub;
+  inputCloud = *input;
   pcl_ros::transformPointCloud(frame_id,inputCloud,msg_trasnformed_pub,*listener);
 
-  pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
+  pcl::PCLPointCloud2 pc2_input;
+  pcl::PointCloud<pcl::PointXYZRGBA> temp_cloud;
+  pcl_conversions::toPCL(msg_trasnformed_pub, pc2_input);
+  pcl::fromPCLPointCloud2(pc2_input, temp_cloud);
+
+  cloud_to_work.reset(new PointCloud);
+  cloud_to_work->width = temp_cloud.width;
+  cloud_to_work->height = temp_cloud.height;
+  cloud_to_work->is_dense = false;
+  cloud_to_work->points.resize(temp_cloud.points.size());
+  //cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
+
+  for (size_t i = 0; i < temp_cloud.points.size(); i++)
+    {
+      cloud_to_work->points[i].x = temp_cloud.points[i].x;
+      cloud_to_work->points[i].y = temp_cloud.points[i].y;
+      cloud_to_work->points[i].z = temp_cloud.points[i].z;
+      cloud_to_work->points[i].r =  1024 * rand () / (RAND_MAX + 1);;
+      cloud_to_work->points[i].g =  1024 * rand () / (RAND_MAX + 1);;
+      cloud_to_work->points[i].b =  1024 * rand () / (RAND_MAX + 1);;
+    }
+
+
+  */
+
+  sensor_msgs::PointCloud2 inputCloud;
+    inputCloud = *input;
+    cloud_to_work.reset(new PointCloud);
+    cloud_to_work->width = inputCloud.width;
+    cloud_to_work->height = 1;
+    cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
+    sensor_msgs::PointCloud2 msg_trasnformed_pub;
+    std_msgs::Header header;
+
+    pcl_ros::transformPointCloud(frame_id,inputCloud,msg_trasnformed_pub,*listener);
+
+    pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
 
   flag_cloud = true;
   if(flag_image && flag_cloud && flag_detections)

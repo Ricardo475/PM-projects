@@ -36,6 +36,7 @@
 #include "pcl_ros/point_cloud.h"
 #include <sensor_msgs/PointCloud2.h>
 #include "pcl_ros/transforms.h"
+#include <pcl/filters/voxel_grid.h>
 
 ///TF includes
 #include <tf/tf.h>
@@ -43,9 +44,8 @@
 #include <tf/transform_broadcaster.h>
 
 ///Defines
-
 #define MAX_DEPTH 30
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
 
 //Global vars
@@ -53,8 +53,8 @@ ros::Publisher pub,pub_car,pub_visualization;
 cv::Mat glob_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
-PointCloud::Ptr cloud_to_work,cloud_vision_field;
-PointCloudRGB::Ptr cloud_car;
+PointCloud::Ptr cloud_to_work;
+PointCloudRGB::Ptr cloud_car,cloud_vision_field;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::string frame_id;
 bool flag_cloud, flag_image, flag_detections;
