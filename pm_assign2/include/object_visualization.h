@@ -39,7 +39,7 @@
 #include <pcl/features/normal_3d.h>
 
 
-//PCL Registration
+///PCL Registration
 #include <pcl/registration/icp.h>
 #include <pcl/registration/icp_nl.h>
 #include <pcl/registration/registration.h>
@@ -52,12 +52,18 @@
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 
+///Defines
+#define MAX_DEPTH 30
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+
 //Global vars
 ros::Publisher pub;
 cv::Mat glob_image;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
+std::vector<cv::Point3f> depth_map;
+PointCloud::Ptr cloud_to_work;
 std::string frame_id;
 tf::TransformListener *listener ;
 std::vector<float> dists;
-
+int cam_height,cam_width;
 #endif

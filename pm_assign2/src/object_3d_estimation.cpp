@@ -86,6 +86,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
   //ROS_INFO(" ");
   //ROS_INFO(" ");
   //ROS_INFO(" ");
+  float coordinates[3];
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
@@ -97,12 +98,23 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 
         min_dist = result;
        // aux_depth_map = depth_map.at(i);
+
+        float pixel[3];
+
+        pixel[0] = depth_map.at(i).x;
+        pixel[1] = depth_map.at(i).y;
+        pixel[2] = depth_map.at(i).z;
+
+
+        pixelToPoint(pixel,coordinates);
+
       }
 
     }
   }
 
 //  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
+
 
   return min_dist;
 }
@@ -115,19 +127,25 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
   float pixel[3];
   float point[3];
+
+
   cloud_car.reset(new PointCloudRGB);
   cloud_car->width = cloud_to_work->width;
   cloud_car->height = 1;
   cloud_car->resize(cloud_car->width*cloud_car->height);
 
+  //ROS_INFO("CAR.XMIN= %2.ld; CAR.XMAX= %2.ld",carr.xmin,carr.xmax);
+  //ROS_INFO("CAR.YMIN= %2.ld; CAR.YMAX= %2.ld",carr.ymin,carr.ymax);
+
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
-    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) && norm_dist(depth_map.at(i)) < (car_min_dist + 3)) //dar 3m de offset devido ao comprimento de um carro normal
+    if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1)) //dar 3m de offset devido ao comprimento de um carro normal
     {
       pixel[0] = depth_map.at(i).x;
       pixel[1] = depth_map.at(i).y;
       pixel[2] = depth_map.at(i).z;
+      //ROS_INFO("PIXEL: [%.2lf ; %.2lf, %.2lf]", float(pixel[0]) , float(pixel[1]) , float(pixel[2]));
       pixelToPoint(pixel,point);
       pcl::PointXYZRGB cloud_point;
       cloud_point.PointXYZRGB::x = point[0];
@@ -274,8 +292,11 @@ void calc_closest_car(){
   if(closest_car_find)
   {
     erase_this = true;
-    make_car_point_cloud(closest_car);
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
+
+    make_car_point_cloud(closest_car);
+
+
     //cv::Mat gray_image;
    // cv::cvtColor(imageROI,gray_image,cv::COLOR_BGR2GRAY);
     /*cv::GaussianBlur(gray_image,gray_image,cv::Size(7,7),0);
@@ -285,8 +306,8 @@ void calc_closest_car(){
     cv::dilate(edges,edges,NULL,cv::Point(-1,-1),1);
     cv::erode(edges,edges,NULL);*/
     // Create a window.
-    cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
-    cv::imshow("closest car", glob_image );
+    //cv::namedWindow( "closest car" );
+    cv::imshow("closest car", imageROI );
     cv::waitKey(1000);
     cv::destroyAllWindows();
 
@@ -336,11 +357,6 @@ void calc_map_depth(){
       }
     }
   }
-
-  //
-  //IDEIA - ADICIONAR AQUI AS CORES AO cloud_vision_field a partir da
-  //        glob_image
-  //
 
   pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
   temp_cloud.width = cloud_vision_field->width;
@@ -397,7 +413,7 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
     inputCloud = *input;
     cloud_to_work.reset(new PointCloud);
     cloud_to_work->width = inputCloud.width;
-    cloud_to_work->height = 1;
+    cloud_to_work->height = inputCloud.height;
     cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
     sensor_msgs::PointCloud2 msg_trasnformed_pub;
     std_msgs::Header header;
