@@ -2,8 +2,8 @@
 
 void pointToPixel(const float point[3],float pixel[3]){
   float x =  (point[0]/(point[2] + 1E-5)),y = (point[1]/(point[2]+1E-5));
-  pixel[0] = static_cast<int>((x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]));
-  pixel[1] = static_cast<int>((y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]));
+  pixel[0] = ((x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]));
+  pixel[1] = ((y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]));
   pixel[2] = point[2];
 }
 void pixelToPoint(const float pixel[3],float point[3])
@@ -77,10 +77,12 @@ void calc_shape_width_height(const darknet_ros_msgs::BoundingBox& carr)
   float width = abs(real_left[0] - real_right[0]);
   //calcular height usar up e down
 
+  pixelToPoint(pixel_up,real_up);
+  pixelToPoint(pixel_down,real_down);
 //  float height = cv::sqrt((real_up[0] - real_down[0]) * (real_up[0] - real_down[0]) + (real_up[1] - real_down[1]) * (real_up[1] - real_down[1]) + (real_up[2] - real_down[2])*(real_up[2] - real_down[2]));
-  float height = abs(real_up[0] - real_down[0]);
+  float height = abs(real_up[1] - real_down[1]);
 
-  ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f",width,height);
+  ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f ",width,height);
 }
 bool inside_boundary(const cv::Point3f& point,const float& t_x_min,const float& t_x_max,const float& t_y_min,const float& t_y_max)
 {
@@ -152,9 +154,9 @@ void check_limits_of_car(cv::Point3f &left, cv::Point3f &right, cv::Point3f &up,
     left = dp_point;
   if(dp_point.x > right.x)
     right = dp_point;
-  if(dp_point.y > down.y)  // LEMBRAR QUE UP AND DOWN É INVERTIDO NO SENTIDO QUE EM CIMA OS VALORES SAO MENORES E EM BAIXO MAIORES
+  if(dp_point.y < down.y)  // LEMBRAR QUE UP AND DOWN É INVERTIDO NO SENTIDO QUE EM CIMA OS VALORES SAO MENORES E EM BAIXO MAIORES
     down = dp_point;
-  if(dp_point.y < up.y)
+  if(dp_point.y > up.y)
     up = dp_point;
 }
 
@@ -175,8 +177,8 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 
   left.x=1500;
   right.x=0;
-  up.y=1500;
-  down.y=0;
+  up.y=0;
+  down.y=1500;
   float coordinates[3];
   for(size_t i=0; i< depth_map.size(); i++)
   {
@@ -382,7 +384,7 @@ void calc_map_depth(){
     threedpoint[2] = cloud_to_work->points[i].z;
     pointToPixel(threedpoint,point);
 
-    if(point[0]>=0 && point[0]<= cam_width)
+    if(point[0]>=0 && point[0]<= cam_width+100)
     {
       if( point[1]>=0 && point[1]<= cam_height && point [2] >0 && point[2]<MAX_DEPTH)
       {
