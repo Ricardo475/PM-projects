@@ -54,11 +54,15 @@
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
 
+typedef pcl::Normal Normal; ; //!< Data type definition for a PointXYZNormal
+typedef pcl::PointCloud<Normal> PointCloudNormal;
 //Global vars
+
 ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap;
-cv::Mat glob_image;
+cv::Mat glob_image,depth_map_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
+cv::Point3f left,right,up,down; // variables to calculate shape(left -> right) and height  (down -> up)
 PointCloud::Ptr cloud_to_work,cloud_vision_field;
 PointCloudRGB::Ptr cloud_car;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
