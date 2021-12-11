@@ -58,7 +58,7 @@ typedef pcl::Normal Normal; ; //!< Data type definition for a PointXYZNormal
 typedef pcl::PointCloud<Normal> PointCloudNormal;
 //Global vars
 ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh;
-cv::Mat glob_image;
+cv::Mat glob_image,depth_map_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
 cv::Point3f left,right,up,down; // variables to calculate shape(left -> right) and height  (down -> up)

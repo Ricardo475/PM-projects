@@ -346,10 +346,10 @@ void calc_closest_car(){
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
     calc_shape_width_height(closest_car);
     // Create a window.
-    cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
+    /*cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
     cv::imshow("closest car", imageROI );
     cv::waitKey(1000);
-    cv::destroyAllWindows();
+    cv::destroyAllWindows();*/
 
   }
 
@@ -373,30 +373,39 @@ void calc_map_depth(){
   cloud_vision_field->resize(cloud_vision_field->width*cloud_vision_field->height);
   depth_map.clear();
 
-  for(uint16_t i = 0; i<cloud_to_work->size(); i++)
+  depth_map_image.create(cam_height,cam_width,CV_8U);
+  depth_map_image.zeros(cam_height,cam_width,CV_8UC1);
+
+  for(uint16_t i = 0; i<cloud_to_work->points.size(); i++)
   {
     float point[3];
     float threedpoint[3];
 
-
+  if( cloud_to_work->points[i].z ==  cloud_to_work->points[i].z)
+   {
     threedpoint[0] = cloud_to_work->points[i].x;
     threedpoint[1] = cloud_to_work->points[i].y;
     threedpoint[2] = cloud_to_work->points[i].z;
     pointToPixel(threedpoint,point);
 
-    if(point[0]>=0 && point[0]<= cam_width+100)
+    if(point[0]>=0 && point[0]<= cam_width)
     {
-      if( point[1]>=0 && point[1]<= cam_height && point [2] >0 && point[2]<MAX_DEPTH)
+      if( point[1]>=0 && point[1]<= cam_height && point [2] >0)
       {
-
+        float dist = sqrt(cloud_to_work->points[i].x * cloud_to_work->points[i].x + cloud_to_work->points[i].y*cloud_to_work->points[i].y + cloud_to_work->points[i].z*cloud_to_work->points[i].z);
         depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
-
+        depth_map_image.at<uint8_t>(static_cast<int>(point[1]),static_cast<int>(point[0])) = static_cast<uint8_t>((255 - ((dist*10)>255?254:(dist*10) ))); //0-255  Dist -> quanto mais perto maior intensidade
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
        // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
+  }
+
+  cv::imshow("depth", depth_map_image);
+  cv::waitKey(1000);
+  cv::destroyAllWindows();
 
   pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
   temp_cloud.width = cloud_vision_field->width;
@@ -424,13 +433,7 @@ void calc_map_depth(){
   }
 
 
-/*
-  cv::Mat image_depth;
-  image_create_from_depth_map(glob_image,image_depth,depth_map);
 
-  cv::imshow("depth iamge", image_depth);
-  cv::waitKey();
-  cv::destroyAllWindows();*/
 
   sensor_msgs::PointCloud2 msg_trasnformed_pub;
   std_msgs::Header header;
