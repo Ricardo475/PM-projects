@@ -1,4 +1,4 @@
-#ifndef PMASSIGN2_NODE_H
+﻿#ifndef PMASSIGN2_NODE_H
 #define PMASSIGN2_NODE_H
 
 
@@ -50,7 +50,6 @@
 
 
 ///Defines
-
 #define MAX_DEPTH 30
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;

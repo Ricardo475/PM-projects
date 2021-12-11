@@ -73,11 +73,12 @@ void calc_shape_width_height(const darknet_ros_msgs::BoundingBox& carr)
   //calcular width  usar o left e o right
   pixelToPoint(pixel_left,real_left);
   pixelToPoint(pixel_right,real_right);
-  float width = cv::sqrt((real_left[0] - real_right[0]) * (real_left[0] - real_right[0]) + (real_left[1] - real_right[1]) * (real_left[1] - real_right[1]) + (real_left[2] - real_right[2])*(real_left[2] - real_right[2]));
-
+//  float width = cv::sqrt((real_left[0] - real_right[0]) * (real_left[0] - real_right[0]) + (real_left[1] - real_right[1]) * (real_left[1] - real_right[1]) + (real_left[2] - real_right[2])*(real_left[2] - real_right[2]));
+  float width = abs(real_left[0] - real_right[0]);
   //calcular height usar up e down
 
-  float height = cv::sqrt((real_up[0] - real_down[0]) * (real_up[0] - real_down[0]) + (real_up[1] - real_down[1]) * (real_up[1] - real_down[1]) + (real_up[2] - real_down[2])*(real_up[2] - real_down[2]));
+//  float height = cv::sqrt((real_up[0] - real_down[0]) * (real_up[0] - real_down[0]) + (real_up[1] - real_down[1]) * (real_up[1] - real_down[1]) + (real_up[2] - real_down[2])*(real_up[2] - real_down[2]));
+  float height = abs(real_up[0] - real_down[0]);
 
   ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f",width,height);
 }
@@ -113,6 +114,7 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
   //ROS_INFO(" ");
   //ROS_INFO(" ");
   //ROS_INFO(" ");
+  float coordinates[3];
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
@@ -124,12 +126,23 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 
         min_dist = result;
        // aux_depth_map = depth_map.at(i);
+
+        float pixel[3];
+
+        pixel[0] = depth_map.at(i).x;
+        pixel[1] = depth_map.at(i).y;
+        pixel[2] = depth_map.at(i).z;
+
+
+        pixelToPoint(pixel,coordinates);
+
       }
 
     }
   }
 
 //  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
+
 
   return min_dist;
 }
@@ -153,32 +166,40 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
   float pixel[3];
   float point[3];
-   ROS_INFO("ENTRAR car cloud");
+  ROS_INFO("ENTRAR car cloud");
+
   cloud_car.reset(new PointCloudRGB);
   cloud_car->width = cloud_to_work->width;
   cloud_car->height = 1;
   cloud_car->resize(cloud_car->width*cloud_car->height);
+
   left.x=1500;
   right.x=0;
   up.y=1500;
   down.y=0;
+  float coordinates[3];
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
-    if(inside_boundary(depth_map.at(i), thresh_x_min, thresh_x_max, thresh_y_min, thresh_y_max) && norm_dist(depth_map.at(i)) < (car_min_dist + 3)) //dar 3m de offset devido ao comprimento de um carro normal
+    pass_float_to_float(depth_map.at(i),coordinates);
+    pixelToPoint(coordinates,coordinates);
+    ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+    if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
     {
+
       check_limits_of_car(left,right,up,down,depth_map.at(i));
       pixel[0] = depth_map.at(i).x;
       pixel[1] = depth_map.at(i).y;
       pixel[2] = depth_map.at(i).z;
+      //ROS_INFO("PIXEL: [%.2lf ; %.2lf, %.2lf]", float(pixel[0]) , float(pixel[1]) , float(pixel[2]));
       pixelToPoint(pixel,point);
       pcl::PointXYZRGB cloud_point;
-      cloud_point._PointXYZRGB::x = point[0];
+      cloud_point.PointXYZRGB::x = point[0];
       cloud_point.PointXYZRGB::y = point[1];
       cloud_point.PointXYZRGB::z = point[2];
-      cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +0)];
-      cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
-      cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +2)];
+      cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +0];
+      cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +1];
+      cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +2];
 
       cloud_car->push_back(cloud_point);
     }
@@ -322,11 +343,10 @@ void calc_closest_car(){
     make_car_point_cloud(closest_car);
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
     calc_shape_width_height(closest_car);
-
     // Create a window.
     cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
     cv::imshow("closest car", imageROI );
-    cv::waitKey();
+    cv::waitKey(1000);
     cv::destroyAllWindows();
 
   }
@@ -336,6 +356,13 @@ void calc_closest_car(){
   cv::waitKey();
   cv::destroyAllWindows();*/
 }
+
+/*
+bool inside_view (const cv::Point3f& point, const int cam_w, const int cam_h){
+
+  return point.x >= 0 && point.x <= cam_w && point.y >= 0 && point.y <= cam_h;
+}
+*/
 void calc_map_depth(){
 
   cloud_vision_field.reset(new PointCloud);
@@ -361,12 +388,39 @@ void calc_map_depth(){
       {
 
         depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
        // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
+
+  pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
+  temp_cloud.width = cloud_vision_field->width;
+  temp_cloud.height = 1;
+  temp_cloud.resize(temp_cloud.width*temp_cloud.height);
+
+  //ROS_INFO("DEPTH SIZE: %ld | PC SIZE: %ld",depth_map.size(), cloud_vision_field->size());
+   for(uint16_t i = 0; i<depth_map.size(); i++)
+  {
+     float pixel[3];
+     float point[3];
+     pixel[0] = depth_map.at(i).x;
+     pixel[1] = depth_map.at(i).y;
+     pixel[2] = depth_map.at(i).z;
+     pixelToPoint(pixel,point);
+     pcl::PointXYZRGB cloud_point;
+     cloud_point.PointXYZRGB::x = point[0];
+     cloud_point.PointXYZRGB::y = point[1];
+     cloud_point.PointXYZRGB::z = point[2];
+     cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +0)];
+     cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
+     cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +2)];
+
+     temp_cloud.push_back(cloud_point);
+  }
+
 
 /*
   cv::Mat image_depth;
@@ -379,7 +433,9 @@ void calc_map_depth(){
   sensor_msgs::PointCloud2 msg_trasnformed_pub;
   std_msgs::Header header;
 
-  pcl::toROSMsg(*cloud_vision_field,msg_trasnformed_pub);
+  //ROS_ERROR("error in to");
+  pcl::toROSMsg(temp_cloud,msg_trasnformed_pub);
+  //ROS_ERROR("error in to");
 
   header.frame_id = frame_id;
   header.stamp    = ros::Time::now();
@@ -390,18 +446,20 @@ void calc_map_depth(){
 
 void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
-  sensor_msgs::PointCloud2 inputCloud;
-  inputCloud = *input;
-  cloud_to_work.reset(new PointCloud);
-  cloud_to_work->width = inputCloud.width;
-  cloud_to_work->height = 1;
-  cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
-  sensor_msgs::PointCloud2 msg_trasnformed_pub;
-  std_msgs::Header header;
 
-  pcl_ros::transformPointCloud(frame_id,inputCloud,msg_trasnformed_pub,*listener);
+    sensor_msgs::PointCloud2 inputCloud;
+    inputCloud = *input;
+    cloud_to_work.reset(new PointCloud);
+    cloud_to_work->width = inputCloud.width;
+    cloud_to_work->height = inputCloud.height;
+    cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
+    sensor_msgs::PointCloud2 msg_trasnformed_pub;
+    std_msgs::Header header;
 
-  pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
+    pcl_ros::transformPointCloud(frame_id,inputCloud,msg_trasnformed_pub,*listener);
+
+    pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
+
 
   flag_cloud = true;
   if(flag_image && flag_cloud && flag_detections)
