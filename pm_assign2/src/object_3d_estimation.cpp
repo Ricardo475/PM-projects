@@ -373,15 +373,14 @@ void calc_map_depth(){
   cloud_vision_field->resize(cloud_vision_field->width*cloud_vision_field->height);
   depth_map.clear();
 
-  depth_map_image.create(cam_height,cam_width,CV_8U);
-  depth_map_image.zeros(cam_height,cam_width,CV_8UC1);
+  cv::Mat cv_image = cv::Mat(cam_height, cam_width, CV_8U,cv::Scalar(std::numeric_limits<float>::max()));
 
   for(uint16_t i = 0; i<cloud_to_work->points.size(); i++)
   {
     float point[3];
     float threedpoint[3];
 
-  if( cloud_to_work->points[i].z ==  cloud_to_work->points[i].z)
+  if( cloud_to_work->points[i].z ==  cloud_to_work->points[i].z)  // IEEE standard, NaN values have the odd property that comparisons involving them are always false.
    {
     threedpoint[0] = cloud_to_work->points[i].x;
     threedpoint[1] = cloud_to_work->points[i].y;
@@ -394,7 +393,8 @@ void calc_map_depth(){
       {
         float dist = sqrt(cloud_to_work->points[i].x * cloud_to_work->points[i].x + cloud_to_work->points[i].y*cloud_to_work->points[i].y + cloud_to_work->points[i].z*cloud_to_work->points[i].z);
         depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
-        depth_map_image.at<uint8_t>(static_cast<int>(point[1]),static_cast<int>(point[0])) = static_cast<uint8_t>((255 - ((dist*10)>255?254:(dist*10) ))); //0-255  Dist -> quanto mais perto maior intensidade
+        int dep= 255 - static_cast<int>(((dist*10)>255?254:(dist*10)));
+        cv_image.at<uint8_t>(static_cast<int>(point[1]),static_cast<int>(point[0])) = dep; //0-255  Dist -> quanto mais perto maior intensidade
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
        // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
@@ -403,9 +403,6 @@ void calc_map_depth(){
   }
   }
 
-  cv::imshow("depth", depth_map_image);
-  cv::waitKey(1000);
-  cv::destroyAllWindows();
 
   pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
   temp_cloud.width = cloud_vision_field->width;
@@ -446,6 +443,10 @@ void calc_map_depth(){
   header.stamp    = ros::Time::now();
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
+
+  cv::imshow("depth", cv_image);
+  cv::waitKey();
+  cv::destroyAllWindows();
 }
 
 
