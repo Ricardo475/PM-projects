@@ -35,16 +35,17 @@ float norm_dist(cv::Point3f& pixel)
 }
 
 
-float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, cv::Point3f* coords)
+float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, geometry_msgs::PointStamped* coords)
 {
   float min_dist = 9999;
   float result;
+  float coordinates[3];
 
   for(size_t i=0; i< depth_map.size(); i++)
   {
 
-    ROS_INFO("XMIM: %.2ld | XMAX: %.2ld | YMIN: %.2ld | YMAX: %.2ld", carr.xmin,carr.xmax,carr.ymin,carr.ymax);
-    ROS_INFO("PIXEL map: X =%.2f | Y=%.2f | Z=%.2f", depth_map.at(i).x,depth_map.at(i).y,depth_map.at(i).z);
+  //  ROS_INFO("XMIM: %.2ld | XMAX: %.2ld | YMIN: %.2ld | YMAX: %.2ld", carr.xmin,carr.xmax,carr.ymin,carr.ymax);
+   // ROS_INFO("PIXEL %ld map: X =%.2f | Y=%.2f | Z=%.2f", i,depth_map.at(i).x,depth_map.at(i).y,depth_map.at(i).z);
 
 
 
@@ -55,9 +56,9 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, cv::Point3f* 
       //ROS_INFO("DIST: %.2f", result);
       if(min_dist > result)
       {
-        min_dist = result;
+
         float pixel[3];
-        float coordinates[3];
+
         pixel[0] = depth_map.at(i).x;
         pixel[1] = depth_map.at(i).y;
         pixel[2] = depth_map.at(i).z;
@@ -67,40 +68,95 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, cv::Point3f* 
         //ROS_INFO("MIN PIXEL: [%.2f , %.2f , %.2f] ",pixel[0],pixel[1],pixel[2]);
         //ROS_INFO("MIN COORDSS: [%.2f , %.2f , %.2f] ",coordinates[0],coordinates[1],coordinates[2]);
 
-        coords->x = coordinates[0];
-        coords->y = coordinates[1];
-        coords->z = coordinates[2];
+        if(coordinates[0] > 0){
+          coords->point.x = coordinates[0];
+          coords->point.y = coordinates[1];
+          coords->point.z = coordinates[2];
+          min_dist = result;
+        }
       }
 
     }
 
   }
 
+
   return min_dist;
 }
 
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
+
   if(glob_image.ptr() != nullptr){
+
+    last_textX = -99999;
+    last_textY = -99999;
 
     for(uint8_t i = 0; i< msg.bounding_boxes.size();i++){
 
       //darknet_ros_msgs::BoundingBox bb = msg.bounding_boxes.at(i);
       if(msg.bounding_boxes.at(i).Class == "car"){
 
-        cv::Point3f coords = cv::Point3f(0,0,0);
+        listener = new tf::TransformListener;
+        tf::StampedTransform transform;
+
+        geometry_msgs::PointStamped coords;
+        coords.header.frame_id = frame_id;
+        coords.header.stamp = ros::Time::now();
+        coords.point.x = 999;
+        coords.point.y = 999;
+        coords.point.z = 999;
 
         float dist = check_dist_to_car(msg.bounding_boxes.at(i),&coords);
 
-        //ROS_INFO("COORDS POINT %d = [%.2f , %.2f]",i,coords.x,coords.y);
+       // ROS_INFO("COORDS POINT MIN IN VF= [%.2f , %.2f , %.2f]",coords.point.x,coords.point.y,coords.point.z);
 
-        if(coords.x >=10 || abs(coords.y) >=5){
+        geometry_msgs::PointStamped coordsLink;
+       // coordsLink.header.frame_id = "base_link";
+       // coordsLink.header.stamp = ros::Time::now();
+       // coordsLink.point.x = 999;
+       // coordsLink.point.x = 999;
+       // coordsLink.point.x = 999;
+        try{
+                listener->waitForTransform(frame_id, "base_link", ros::Time::now(), ros::Duration(3.0));
+                listener->lookupTransform(frame_id, "base_link",ros::Time::now(),transform);
+               // std::cout << "transform exist\n";
+
+                listener->transformPoint("base_link",coords,coordsLink);
+        }
+        catch (tf::TransformException ex){
+                    ROS_ERROR("%s",ex.what());
+                    ros::Duration(1.0).sleep();
+                    coordsLink.point.x = 999;
+                    coordsLink.point.y = 999;
+                    coordsLink.point.z = 999;
+
+             }
+
+        //ROS_INFO("COORDS POINT MIN IN BL= [%.2f , %.2f , %.2f]",coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
+        //ROS_INFO("COORDS CAR %d = [%.2f , %.2f , %.2f]",i,coords.x,coords.y,coords.z);
+
+        //ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
+        //         coords.point.x,coords.point.y,coords.point.z,
+        //        coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
+
+        if(coordsLink.point.x >=10 || abs(coordsLink.point.y) >=5 || coordsLink.point.x < 0 ){
+
 
           cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,255,0),2,cv::LINE_8);
 
         }
 
         else{
+          int valueX = coordsLink.point.x + 0.5;
+          int valueY = coordsLink.point.y + 0.5;
+          int valueZ = coordsLink.point.z + 0.5;
+
+
+
+          std::string print = "(x,y,z)=(" + std::to_string(valueX) +","+ std::to_string(valueY) + "," + std::to_string(valueZ) + ")";
+          cv::putText(glob_image,print,cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1.2,cv::LINE_AA);
+
           cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,0,255),2,cv::LINE_8);
 
         }
@@ -111,8 +167,6 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
         //cv::putText(glob_image,"type: "+msg.bounding_boxes.at(i).Class+" prob: "+ std::to_string(prob),cv::Point(msg.bounding_boxes.at(i).ymin,msg.bounding_boxes.at(i).ymin),cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,0),2);
 
-        //cv::putText(glob_image,"(x,y,z)=(1,2,4)",cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1,cv::LINE_AA);
-
         //RED
         //cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,0,255),1,cv::LINE_8);
       }
@@ -120,28 +174,29 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
         cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,255,0),2,cv::LINE_8);
 
       }
-
-
-
     }
 
     cv::imshow("darknet image", glob_image );
     cv::waitKey(2000);
     //cv::destroyAllWindows();
   }
+
 }
 
 
 void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 {
+
   cam_width = static_cast<int>(camera_inf.width);
   cam_height = static_cast<int>(camera_inf.height);
   intrinsic_matrix = camera_inf.K;
   //std::cout<< "IT: "<<intrinsic_matrix.elems[0]<<" "<<intrinsic_matrix.elems[1]<<" "<<intrinsic_matrix.elems[2]<<"\n"<<intrinsic_matrix.elems[3]<<" "<<intrinsic_matrix.elems[4]<<" "<<intrinsic_matrix.elems[5]<<"\n"<<intrinsic_matrix.elems[6]<<" "<<intrinsic_matrix.elems[7]<<" "<<intrinsic_matrix.elems[8]<<std::endl;
+
 }
 
 void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 {
+
   cv_bridge::CvImagePtr cv_ptr;
   try
   {
@@ -172,30 +227,32 @@ void calc_map_depth(){
   depth_map.clear();
 
 
-  for(uint16_t i = 0; i<cloud_to_work->size(); i++)
+  for(uint16_t i = 0; i<cloud_map->size(); i++)
   {
     float point[3];
     float threedpoint[3];
 
-    threedpoint[0] = cloud_to_work->points[i].x;
-    threedpoint[1] = cloud_to_work->points[i].y;
-    threedpoint[2] = cloud_to_work->points[i].z;
+    threedpoint[0] = cloud_map->points[i].x;
+    threedpoint[1] = cloud_map->points[i].y;
+    threedpoint[2] = cloud_map->points[i].z;
     pointToPixel(threedpoint,point);
 
-    ROS_INFO("POINT %f, %f, %f",point[0],point[1],point[2]);
+    depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+    //ROS_INFO("POINT %f, %f, %f",cloud_map->points[i].x,cloud_map->points[i].y,cloud_map->points[i].z);
+   // ROS_INFO("PIXEL %f, %f, %f ADDED",point[0],point[1],point[2]);
 
 
-    if(point[0]>=0 && point[0]<= cam_width)
-    {
+    //if(point[0]>=0 && point[0]<= cam_width)
+   // {
 
-      if( point[1]>=0 && point[1]<= cam_height && point [2] >0 && point[2]<MAX_DEPTH)
-      {
+      //if( point[1]>=0 && point[1]<= cam_height && point [2] >0 && point[2]<MAX_DEPTH)
+     // {
 
-        depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         //ROS_INFO("POINT %f, %f  ADDED ",point[0],point[1]);
-      }
-    }
+      //}
+    //}
   }
 
 
@@ -203,19 +260,21 @@ void calc_map_depth(){
 
 void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input){
 
+
   sensor_msgs::PointCloud2 inputCloud;
+  sensor_msgs::PointCloud2 msg_trasnformed;
   inputCloud = *input;
-  cloud_to_work.reset(new PointCloud);
-  cloud_to_work->width = inputCloud.width;
-  cloud_to_work->height = inputCloud.height;
-  cloud_to_work->resize(cloud_to_work->width*cloud_to_work->height);
-  sensor_msgs::PointCloud2 msg_trasnformed_pub;
-  std_msgs::Header header;
 
-  pcl_ros::transformPointCloud("base_link",inputCloud,msg_trasnformed_pub,*listener);
+  cloud_map.reset(new PointCloud);
+  cloud_map->width = inputCloud.width;
+  cloud_map->height = inputCloud.height;
+  cloud_map->resize(cloud_map->width*cloud_map->height);
 
-  pcl::fromROSMsg(msg_trasnformed_pub,*cloud_to_work);
+  pcl::fromROSMsg(inputCloud,*cloud_map);
+
   calc_map_depth();
+
+
 
 }
 
@@ -226,9 +285,6 @@ void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
 
 }
 
-//void dist_callback(const std::vector<float>& msg){
-  //dists = msg;
-//}
 
 int main(int argc, char **argv)
 {
@@ -238,24 +294,13 @@ int main(int argc, char **argv)
   ros::NodeHandle n_private("~"); //Private definition node namespace
 
   n_private.param<std::string>("frame_id", frame_id , "vision_frame");
+  glob_image = cv::Mat();
 
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
   ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
-  ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
+  ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
   //ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
   ros::Subscriber sub_visual = n_public.subscribe("visual",1,visual_callback);
-
-  listener = new tf::TransformListener;
-    try
-    {
-      listener->waitForTransform("/base_link", "velodyne", ros::Time::now(), ros::Duration(3.0));
-    }
-    catch (tf::TransformException ex)
-    {
-      ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
-    }
-
 
   ros::spin();
 

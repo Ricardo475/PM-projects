@@ -55,7 +55,7 @@ typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudRGB;
 
 //Global vars
-ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh;
+ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap;
 cv::Mat glob_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
