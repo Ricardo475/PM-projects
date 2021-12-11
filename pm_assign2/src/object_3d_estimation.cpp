@@ -12,6 +12,7 @@ void pixelToPoint(const float pixel[3],float point[3])
   point[1] = (pixel[1] - intrinsic_matrix.elems[5]) * pixel[2]/(intrinsic_matrix.elems[4]+1E-5);
   point[2] = pixel[2];
 }
+
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
   if(glob_image.ptr() != nullptr)
@@ -138,10 +139,13 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 
         pixelToPoint(pixel,coordinates);
 
+
       }
 
     }
   }
+
+  //ROS_INFO("COORDS POINT MIN= [%.2f , %.2f , %.2f]",coordinates[0],coordinates[1],coordinates[2]);
 
 //  ROS_INFO("COORD_CLOSEST: [%.2f ; %.2f, %.2f]", float(aux_depth_map.x) , float(aux_depth_map.y) , float(aux_depth_map.z));
 
@@ -397,11 +401,26 @@ void calc_map_depth(){
         cv_image.at<uint8_t>(static_cast<int>(point[1]),static_cast<int>(point[0])) = dep; //0-255  Dist -> quanto mais perto maior intensidade
         //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
         cloud_vision_field->push_back(cloud_to_work->points[i]);
-       // ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
+        //ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
       }
     }
   }
   }
+
+
+  sensor_msgs::PointCloud2 pub_vision;
+  std_msgs::Header header_vision;
+
+  //ROS_ERROR("error in to");
+  pcl::toROSMsg(*cloud_vision_field,pub_vision);
+  //ROS_ERROR("error in to");
+
+  header_vision.frame_id = frame_id;
+  header_vision.stamp    = ros::Time::now();
+  pub_vision.header = header_vision;
+
+  pub_cloudmap.publish(pub_vision);
+
 
 
   pcl::PointCloud<pcl::PointXYZRGB> temp_cloud;
@@ -543,6 +562,7 @@ ROS_INFO("HELLO");
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
+  pub_cloudmap = n_public.advertise<sensor_msgs::PointCloud2>("cloud_map",1);
   pub_pose = n_public.advertise<geometry_msgs::Pose>("/car_pose",1);
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
 
