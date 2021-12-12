@@ -576,6 +576,11 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   flag_cloud = true;
   if(flag_image && flag_cloud && flag_detections)
   {
+    sensor_msgs::ImagePtr s_msgs;
+    s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
+    s_msgs->header.stamp = ros::Time::now();
+    pub_image.publish(s_msgs);
+
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
@@ -598,8 +603,15 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
   cv::Mat image = cv_ptr -> image;
   glob_image = image;
   flag_image = true;
+
+
   if(flag_image && flag_cloud && flag_detections)
   {
+      sensor_msgs::ImagePtr s_msgs;
+      s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
+      s_msgs->header.stamp = ros::Time::now();
+      pub_image.publish(s_msgs);
+
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
@@ -623,6 +635,11 @@ void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
   //draw_rectangles(msg);
   if(flag_image && flag_cloud && flag_detections)
   {
+    sensor_msgs::ImagePtr s_msgs;
+    s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
+    s_msgs->header.stamp = ros::Time::now();
+    pub_image.publish(s_msgs);
+
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
@@ -638,18 +655,27 @@ int main(int argc, char **argv)
   ros::NodeHandle n_public;
   ros::NodeHandle n_private("~"); //Private definition node namespace
   ROS_INFO("HELLO");
+
+  image_transport::ImageTransport it(n_public);
   n_private.param<std::string>("frame_id", frame_id , "vision_frame");
   glob_image = cv::Mat();
+
   //Create a subscriber object
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
   ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
+
+  ROS_INFO("HELLO2");
   ros::Subscriber sub_cloud = n_public.subscribe("velodyne_points",1,pointCloud_callback);
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
+  pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
   pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
   pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("car_dimensions", 1);
-  pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
+  pub_image = it.advertise("/image",1);
+
+
+
 
   listener = new tf::TransformListener;
   try

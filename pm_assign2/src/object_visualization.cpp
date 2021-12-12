@@ -114,7 +114,11 @@ void transform_to_PointCloud(const darknet_ros_msgs::BoundingBox& carr, float ca
 }
 */
 
+/*
+void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
+=======
 /*void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
+>>>>>>> 3d2884d0c6692c6418cadd25dabd7454f1ec5116
 {
 
   dist_car = 999999;
@@ -290,13 +294,6 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 
 
 
-void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
-
-
-
-  //draw_rectangles(car);
-
-}
 
 void car_dimensions_callback(const geometry_msgs::PointStamped& vec){
 
@@ -313,7 +310,7 @@ void topic_callback( const pm_assign2::warning_msg& msg){
 
   if(glob_image.ptr() != nullptr){
 
-    ROS_INFO("%ld",  msg.bouBox.size());
+    //ROS_INFO("%ld",  msg.bouBox.size());
     for(uint8_t i = 0; i< msg.bouBox.size();i++){
 
       //darknet_ros_msgs::BoundingBox bb = msg.bounding_boxes.at(i);
@@ -367,7 +364,7 @@ void topic_callback( const pm_assign2::warning_msg& msg){
 
 
           std::string print = "(x,y,z)=(" + x.str() +","+ y.str() + "," + z.str() + ")";
-          cv::putText(glob_image,print,cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,1,0),2);
+          cv::putText(glob_image,print,cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin-5),cv::FONT_HERSHEY_DUPLEX,0.8,cv::Scalar(0,0,255),1.8,cv::LINE_AA);
 
           cv::rectangle(glob_image,cv::Point(msg.bouBox.at(i).xmax,msg.bouBox.at(i).ymax),cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin),cv::Scalar(0,0,255),2,cv::LINE_8);
 
@@ -396,14 +393,22 @@ void topic_callback( const pm_assign2::warning_msg& msg){
       height << car_height;
 
        std::string print = "Width=" + width.str() +" Height=" + height.str();
-       cv::putText(glob_image,print,cv::Point(msg.bouBox.at(increment).xmin,msg.bouBox.at(increment).ymin-25),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,1,0),2);
+       cv::putText(glob_image,print,cv::Point(msg.bouBox.at(increment).xmin,msg.bouBox.at(increment).ymin-28),cv::FONT_HERSHEY_DUPLEX,0.8,cv::Scalar(0,0,255),1.8,cv::LINE_AA);
+       //ROS_INFO("HEYYY");
     }
 
+    cv::namedWindow("Warning System", CV_WINDOW_NORMAL);
+    cv::resizeWindow("Warning System", cam_width/2, cam_height/2);
     cv::imshow("Warning System", glob_image );
-    if(dont_display)
+    cv::waitKey(500);
+
+    /*
+    if(dont_display){
       cv::imshow("depth map", depth_map_image );
 
     cv::waitKey(2000);
+    }
+    */
     //cv::destroyAllWindows();
 
 
@@ -424,7 +429,7 @@ int main(int argc, char **argv)
   glob_image = cv::Mat();
 
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
-  ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
+  ros::Subscriber sub_left = n_public.subscribe("/image",1,image_left_callback);
  // ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
   ros::Subscriber sub_dists = n_public.subscribe("car_dimensions",1,car_dimensions_callback);
   ros::Subscriber sub_msg = n_public.subscribe("warn_topic",1,topic_callback);
