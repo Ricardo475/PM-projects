@@ -414,9 +414,9 @@ void calc_closest_car(){
           warn_msg.distance[id] = dist;
           pcl::PointXYZ centroid;
           pcl::computeCentroid(pc, centroid);
-          warn_msg.x[0] = centroid._PointXYZ::x;
-          warn_msg.y[0] = centroid._PointXYZ::y;
-          warn_msg.z[0] = centroid._PointXYZ::z;
+          warn_msg.x[id] = centroid._PointXYZ::x;
+          warn_msg.y[id] = centroid._PointXYZ::y;
+          warn_msg.z[id] = centroid._PointXYZ::z;
           //ROS_INFO("SIZE: [%.2f ; %.2f]", float(carr.xmax) , float(carr.ymax));
 
           if(min_dist > dist && (carr.xmax - carr.xmin) > 50 && (carr.ymax- carr.ymin) > 50)
