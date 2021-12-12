@@ -665,7 +665,7 @@ int main(int argc, char **argv)
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
   pub_cloudmap = n_public.advertise<sensor_msgs::PointCloud2>("cloud_map",1);
   pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
-  pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("dist", 1);
+  pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("car_dimensions", 1);
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
   pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);

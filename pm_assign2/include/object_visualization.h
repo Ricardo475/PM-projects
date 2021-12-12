@@ -1,6 +1,8 @@
 #ifndef PMASSIGN2_NODE_H
 #define PMASSIGN2_NODE_H
 
+#include "pm_assign2/warning_msg.h"
+
 ///ROS include
 #include <ros/ros.h>
 #include <ros/subscriber.h>
