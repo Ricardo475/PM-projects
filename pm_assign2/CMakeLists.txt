@@ -29,6 +29,17 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 
+add_message_files(
+    FILES
+    warning_msg.msg
+)
+
+generate_messages(
+    DEPENDENCIES
+    darknet_ros_msgs
+    geometry_msgs
+    std_msgs
+)
 
 include_directories(
   include

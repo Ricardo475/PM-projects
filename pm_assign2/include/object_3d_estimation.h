@@ -42,7 +42,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <shape_msgs/Mesh.h>
-
+#include "pm_assign2/warning_msg.h"
 ///TF includes
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
@@ -58,7 +58,7 @@ typedef pcl::Normal Normal; ; //!< Data type definition for a PointXYZNormal
 typedef pcl::PointCloud<Normal> PointCloudNormal;
 //Global vars
 
-ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap,pub_dimensions;
+ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap,pub_dimensions, pub_warn;
 cv::Mat glob_image,depth_map_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;

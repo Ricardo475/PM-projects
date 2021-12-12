@@ -168,7 +168,7 @@ void pose_arrray_pub()
   pub_pose.publish(array_pose_pub);
 
 }
-float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
+float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, PointCloud &pc)
 {
   float min_dist = 9999;
   float result;
@@ -201,10 +201,12 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 
 
         pixelToPoint(pixel,coordinates);
-
-
+        pcl::PointXYZ cloud_point;
+        cloud_point.PointXYZ::x = coordinates[0];
+        cloud_point.PointXYZ::y = coordinates[1];
+        cloud_point.PointXYZ::z = coordinates[2];
+        pc.push_back(cloud_point);
       }
-
     }
   }
 
@@ -384,6 +386,8 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 void calc_closest_car(){
 
   erase_this = false;
+  pm_assign2::warning_msg warn_msg;
+  int id = 0;
   darknet_ros_msgs::BoundingBox closest_car;
   float min_dist = 9999;
   bool closest_car_find= false;
@@ -393,7 +397,26 @@ void calc_closest_car(){
         if(detections.bounding_boxes.at(i).Class == "car")
         {
           darknet_ros_msgs::BoundingBox carr = detections.bounding_boxes.at(i);
-          float dist = check_dist_to_car(carr);   
+          PointCloud pc;
+          cloud_car.reset(new PointCloudRGB);
+          cloud_car->width = cloud_to_work->width;
+          cloud_car->height = 1;
+          cloud_car->resize(cloud_car->width*cloud_car->height);
+
+          warn_msg.bouBox.resize(id+1);
+          warn_msg.distance.resize(id+1);
+          warn_msg.x.resize(id+1);
+          warn_msg.y.resize(id+1);
+          warn_msg.z.resize(id+1);
+
+          warn_msg.bouBox[id];
+          float dist = check_dist_to_car(carr,pc);
+          warn_msg.distance[id] = dist;
+          pcl::PointXYZ centroid;
+          pcl::computeCentroid(pc, centroid);
+          warn_msg.x[0] = centroid._PointXYZ::x;
+          warn_msg.y[0] = centroid._PointXYZ::y;
+          warn_msg.z[0] = centroid._PointXYZ::z;
           //ROS_INFO("SIZE: [%.2f ; %.2f]", float(carr.xmax) , float(carr.ymax));
 
           if(min_dist > dist && (carr.xmax - carr.xmin) > 50 && (carr.ymax- carr.ymin) > 50)
@@ -410,6 +433,7 @@ void calc_closest_car(){
 
   if(closest_car_find)
   {
+    pub_warn.publish(warn_msg);
     erase_this = true;
     make_car_point_cloud(closest_car);
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
@@ -628,7 +652,7 @@ int main(int argc, char **argv)
   ros::init(argc,argv,"pointcloud_node");
   ros::NodeHandle n_public;
   ros::NodeHandle n_private("~"); //Private definition node namespace
-ROS_INFO("HELLO");
+  ROS_INFO("HELLO");
   n_private.param<std::string>("frame_id", frame_id , "vision_frame");
   glob_image = cv::Mat();
   //Create a subscriber object
@@ -642,7 +666,7 @@ ROS_INFO("HELLO");
   pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
   pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("dist", 1);
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
-
+  pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
 
   listener = new tf::TransformListener;
