@@ -59,6 +59,7 @@ typedef pcl::PointCloud<Normal> PointCloudNormal;
 //Global vars
 
 ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap,pub_dimensions, pub_warn;
+image_transport::Publisher pub_depth_map;
 cv::Mat glob_image,depth_map_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;

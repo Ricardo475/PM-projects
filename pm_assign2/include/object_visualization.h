@@ -56,7 +56,8 @@ typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
 //Global vars
 ros::Publisher pub;
-cv::Mat glob_image;
+bool dont_display;
+cv::Mat glob_image,depth_map_image;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::vector<cv::Point3f> depth_map;
 PointCloud::Ptr cloud_map,cloud_car;

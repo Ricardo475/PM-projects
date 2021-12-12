@@ -563,7 +563,10 @@ void calc_map_depth(){
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
 
-
+  sensor_msgs::ImagePtr msg;
+  msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
+  msg->header.stamp = ros::Time::now();
+  pub_depth_map.publish(msg);
   /*cv::imshow("depth", cv_image);
   cv::waitKey();
   cv::destroyAllWindows();*/
@@ -669,7 +672,8 @@ int main(int argc, char **argv)
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
   pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
-
+  image_transport::ImageTransport it(n_public);
+  pub_depth_map = it.advertise("/depth_map_image",1);
   listener = new tf::TransformListener;
   try
   {

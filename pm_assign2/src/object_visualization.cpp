@@ -114,7 +114,7 @@ void transform_to_PointCloud(const darknet_ros_msgs::BoundingBox& carr, float ca
 }
 */
 
-void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
+/*void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
 
   dist_car = 999999;
@@ -258,7 +258,7 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
   }
 }
-
+*/
 
 void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 {
@@ -287,27 +287,7 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 
 }
 
-void calc_map_depth(){
 
-
-  depth_map.clear();
-
-
-  for(uint16_t i = 0; i<cloud_map->size(); i++)
-  {
-    float point[3];
-    float threedpoint[3];
-
-    threedpoint[0] = cloud_map->points[i].x;
-    threedpoint[1] = cloud_map->points[i].y;
-    threedpoint[2] = cloud_map->points[i].z;
-    pointToPixel(threedpoint,point);
-
-    depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
-  }
-
-
-}
 
 
 void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
@@ -420,6 +400,9 @@ void topic_callback( const pm_assign2::warning_msg& msg){
     }
 
     cv::imshow("Warning System", glob_image );
+    if(dont_display)
+      cv::imshow("depth map", depth_map_image );
+
     cv::waitKey(2000);
     //cv::destroyAllWindows();
 
@@ -446,7 +429,8 @@ int main(int argc, char **argv)
   ros::Subscriber sub_dists = n_public.subscribe("car_dimensions",1,car_dimensions_callback);
   ros::Subscriber sub_msg = n_public.subscribe("warn_topic",1,topic_callback);
   //ros::Subscriber sub_visual = n_public.subscribe("/objects/left/bounding_boxes",1,visual_callback);
-
+  // image_transport::ImageTransport it(n_public);
+  //image_transport::Subscriber sub_depth_map = it.subscribe("/depth_map_image", 1, depth_map_callback);
    //pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
 
    ros::spin();
