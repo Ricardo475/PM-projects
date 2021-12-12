@@ -86,7 +86,7 @@ void calc_shape_width_height(const darknet_ros_msgs::BoundingBox& carr)
   car_width = width;
   car_height = height;
 
-  ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f ",width,height);
+ // ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f ",width,height);
 
 
 }
@@ -151,7 +151,7 @@ void pose_arrray_pub()
         pose.position.y = pose_point[1];
         pose.position.z = pose_point[2];
         pose.orientation = quat;
-        ROS_INFO("X %f   Y %f  Z %f   quat  %f",pose.position.x,pose.position.y,pose.position.z, pose.orientation.Quaternion_::w);
+ //       ROS_INFO("X %f   Y %f  Z %f   quat  %f",pose.position.x,pose.position.y,pose.position.z, pose.orientation.Quaternion_::w);
         array_pose_pub.poses.push_back(pose);
       }
     }
@@ -417,7 +417,7 @@ void calc_closest_car(){
           warn_msg.x[id] = centroid._PointXYZ::x;
           warn_msg.y[id] = centroid._PointXYZ::y;
           warn_msg.z[id] = centroid._PointXYZ::z;
-          //ROS_INFO("SIZE: [%.2f ; %.2f]", float(carr.xmax) , float(carr.ymax));
+          ROS_INFO("centroid: [%.2f ; %.2f ; %.2f]", centroid._PointXYZ::x, centroid._PointXYZ::y,centroid._PointXYZ::z);
 
           if(min_dist > dist && (carr.xmax - carr.xmin) > 50 && (carr.ymax- carr.ymin) > 50)
           {
@@ -426,6 +426,7 @@ void calc_closest_car(){
             car_min_dist = min_dist;
             closest_car_find = true;
           }
+          id++;
         }
       }
 
