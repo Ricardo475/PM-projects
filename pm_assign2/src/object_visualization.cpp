@@ -309,26 +309,6 @@ void calc_map_depth(){
 
 }
 
-void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input){
-
-
-  sensor_msgs::PointCloud2 inputCloud;
-  sensor_msgs::PointCloud2 msg_trasnformed;
-  inputCloud = *input;
-
-  cloud_map.reset(new PointCloud);
-  cloud_map->width = inputCloud.width;
-  cloud_map->height = inputCloud.height;
-  cloud_map->resize(cloud_map->width*cloud_map->height);
-
-  pcl::fromROSMsg(inputCloud,*cloud_map);
-
-  calc_map_depth();
-
-
-
-}
-
 
 void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
 
@@ -387,15 +367,6 @@ void topic_callback( const pm_assign2::warning_msg& msg){
 
              }
 
-        //ROS_INFO("COORDS POINT MIN IN BL= [%.2f , %.2f , %.2f]",coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
-        //ROS_INFO("COORDS CAR %d = [%.2f , %.2f , %.2f]",i,coords.x,coords.y,coords.z);
-
-        ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
-                 coords.point.x,coords.point.y,coords.point.z,
-                coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
-
-
-
         if(coordsLink.point.x >=10 || abs(coordsLink.point.y) >=5 || coordsLink.point.x < 0 ){
 
 
@@ -416,7 +387,7 @@ void topic_callback( const pm_assign2::warning_msg& msg){
 
 
           std::string print = "(x,y,z)=(" + x.str() +","+ y.str() + "," + z.str() + ")";
-          cv::putText(glob_image,print,cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1.2,cv::LINE_AA);
+          cv::putText(glob_image,print,cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,1,0),2);
 
           cv::rectangle(glob_image,cv::Point(msg.bouBox.at(i).xmax,msg.bouBox.at(i).ymax),cv::Point(msg.bouBox.at(i).xmin,msg.bouBox.at(i).ymin),cv::Scalar(0,0,255),2,cv::LINE_8);
 
@@ -445,8 +416,7 @@ void topic_callback( const pm_assign2::warning_msg& msg){
       height << car_height;
 
        std::string print = "Width=" + width.str() +" Height=" + height.str();
-       cv::putText(glob_image,print,cv::Point(msg.bouBox.at(increment).xmin,msg.bouBox.at(increment).ymin-35),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1.2,cv::LINE_AA);
-       //ROS_INFO("HEYYY");
+       cv::putText(glob_image,print,cv::Point(msg.bouBox.at(increment).xmin,msg.bouBox.at(increment).ymin-25),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,1,0),2);
     }
 
     cv::imshow("Warning System", glob_image );
