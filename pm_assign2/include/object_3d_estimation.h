@@ -15,7 +15,7 @@
 ///MSGs includes
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ModelStates.h>
-
+#include <geometry_msgs/PoseArray.h>
 
 /// OpenCV include
 #include <opencv2/opencv.hpp>

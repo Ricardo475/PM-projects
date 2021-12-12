@@ -2,7 +2,7 @@
 
 void pointToPixel(const float point[3],float pixel[3]){
   float x =  (point[0]/(point[2] + 1E-5)),y = (point[1]/(point[2]+1E-5));
-  pixel[0] = ((x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]));
+  pixel[0] = ((x * intrinsic_matrix.elems[0] + intrinsic_matrix.elems[2]))/*-300*/;
   pixel[1] = ((y * intrinsic_matrix.elems[4] + intrinsic_matrix.elems[5]));
   pixel[2] = point[2];
 }
@@ -87,7 +87,7 @@ void calc_shape_width_height(const darknet_ros_msgs::BoundingBox& carr)
 }
 bool inside_boundary(const cv::Point3f& point,const float& t_x_min,const float& t_x_max,const float& t_y_min,const float& t_y_max)
 {
-  return point.x > t_x_min && point.x < t_x_max && point.y > t_y_min && point.y < t_y_max;
+  return point.x >= t_x_min && point.x <= t_x_max && point.y >= t_y_min && point.y <= t_y_max;
 }
 float norm_dist(cv::Point3f& pixel)
 {
@@ -104,6 +104,64 @@ float norm_dist(cv::Point3f& pixel)
     //ROS_INFO("MINIMUM CAR AT  [ %.2f, %.2f, %.2f ]   with dist:  %.2f",coord[0], coord[1], coord[2], cv::sqrt(coord[0] * coord[0] + coord[1]*coord[1] + coord[2]*coord[2]));
   }
   return cv::sqrt(coord[0] * coord[0] + coord[1]*coord[1] + coord[2]*coord[2]);
+}
+
+
+
+
+void pose_arrray_pub()
+{
+  geometry_msgs::PoseArray array_pose_pub;
+
+
+  for(size_t i = 0; i<cloud_car->size();i++)
+  {
+    if(cloud_car->at(i)._PointXYZRGB::z == cloud_car->at(i)._PointXYZRGB::z)
+    {
+
+      float pose_point[3];
+      pose_point[0] = cloud_car->at(i).PointXYZRGB::x;
+      pose_point[1] = cloud_car->at(i).PointXYZRGB::y;
+      pose_point[2] = cloud_car->at(i).PointXYZRGB::z;
+      if(pose_point[0] != 0 || pose_point[1] != 0 || pose_point[2] != 0)
+      {
+        geometry_msgs::Pose pose;
+        tf::Quaternion q;
+        double roll, pitch, yaw;
+
+        //Set Quaternion
+        q.setW(0);
+        q.setX(pose_point[0] / (sqrt(pose_point[0] * pose_point[0] +pose_point[1] * pose_point[1]+pose_point[2] * pose_point[2])+1E-5));
+        q.setY(pose_point[1] / (sqrt(pose_point[0] * pose_point[0] +pose_point[1] * pose_point[1]+pose_point[2] * pose_point[2])+1E-5));
+        q.setZ(pose_point[2] / (sqrt(pose_point[0] * pose_point[0] +pose_point[1] * pose_point[1]+pose_point[2] * pose_point[2])+1E-5));
+
+        //Matrix 3x3
+        tf::Matrix3x3 rot_matrix(q);
+        rot_matrix.getRotation(q);
+        rot_matrix.getRPY(roll, pitch, yaw);
+
+        geometry_msgs::Quaternion quat = tf::createQuaternionMsgFromRollPitchYaw(roll, pitch, yaw);
+
+        pose.position.x = pose_point[0];
+        pose.position.y = pose_point[1];
+        pose.position.z = pose_point[2];
+        pose.orientation = quat;
+        ROS_INFO("X %f   Y %f  Z %f   quat  %f",pose.position.x,pose.position.y,pose.position.z, pose.orientation.Quaternion_::w);
+        array_pose_pub.poses.push_back(pose);
+      }
+    }
+  }
+
+
+  std_msgs::Header header;
+  header.frame_id = frame_id;
+  header.stamp    = ros::Time::now();
+
+
+  array_pose_pub.header = header;
+
+  pub_pose.publish(array_pose_pub);
+
 }
 float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr)
 {
@@ -189,8 +247,8 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 
     pass_float_to_float(depth_map.at(i),coordinates);
     pixelToPoint(coordinates,coordinates);
-    ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
-    if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
+   // ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+    if(inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.ymin, carr.ymax) && norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) >= (car_min_dist) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
     {
 
       check_limits_of_car(left,right,up,down,depth_map.at(i));
@@ -198,6 +256,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
       pixel[1] = depth_map.at(i).y;
       pixel[2] = depth_map.at(i).z;
       //ROS_INFO("PIXEL: [%.2lf ; %.2lf, %.2lf]", float(pixel[0]) , float(pixel[1]) , float(pixel[2]));
+
       pixelToPoint(pixel,point);
       pcl::PointXYZRGB cloud_point;
       cloud_point.PointXYZRGB::x = point[0];
@@ -349,6 +408,7 @@ void calc_closest_car(){
     make_car_point_cloud(closest_car);
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
     calc_shape_width_height(closest_car);
+    pose_arrray_pub();
     // Create a window.
     /*cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
     cv::imshow("closest car", imageROI );
@@ -384,27 +444,27 @@ void calc_map_depth(){
     float point[3];
     float threedpoint[3];
 
-  if( cloud_to_work->points[i].z ==  cloud_to_work->points[i].z)  // IEEE standard, NaN values have the odd property that comparisons involving them are always false.
-   {
-    threedpoint[0] = cloud_to_work->points[i].x;
-    threedpoint[1] = cloud_to_work->points[i].y;
-    threedpoint[2] = cloud_to_work->points[i].z;
-    pointToPixel(threedpoint,point);
+    if( cloud_to_work->points[i].z ==  cloud_to_work->points[i].z)  // IEEE standard, NaN values have the odd property that comparisons involving them are always false.
+     {
+      threedpoint[0] = cloud_to_work->points[i].x;
+      threedpoint[1] = cloud_to_work->points[i].y;
+      threedpoint[2] = cloud_to_work->points[i].z;
+      pointToPixel(threedpoint,point);
 
-    if(point[0]>=0 && point[0]<= cam_width)
-    {
-      if( point[1]>=0 && point[1]<= cam_height && point [2] >0)
+      if(point[0]>=0 && point[0]<= cam_width)
       {
-        float dist = sqrt(cloud_to_work->points[i].x * cloud_to_work->points[i].x + cloud_to_work->points[i].y*cloud_to_work->points[i].y + cloud_to_work->points[i].z*cloud_to_work->points[i].z);
-        depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
-        int dep= 255 - static_cast<int>(((dist*10)>255?254:(dist*10)));
-        cv_image.at<uint8_t>(static_cast<int>(point[1]),static_cast<int>(point[0])) = dep; //0-255  Dist -> quanto mais perto maior intensidade
-        //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
-        cloud_vision_field->push_back(cloud_to_work->points[i]);
-        //ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
+        if( point[1]>=0 && point[1]<= cam_height && point [2] >0)
+        {
+          float dist = sqrt(cloud_to_work->points[i].x * cloud_to_work->points[i].x + cloud_to_work->points[i].y*cloud_to_work->points[i].y + cloud_to_work->points[i].z*cloud_to_work->points[i].z);
+          depth_map.push_back(cv::Point3f(point[0],point[1],point[2]));
+          int dep= 255 - static_cast<int>(((dist*10)>255?254:(dist*10)));
+          cv_image.at<uint8_t>(int(point[1]),int(point[0])) = dep; //0-255  Dist -> quanto mais perto maior intensidade
+          //ROS_INFO("POINT: [%d,%d]  at DIST: %2.f  ", (int)point[0],(int)point[1],point[2]);
+          cloud_vision_field->push_back(cloud_to_work->points[i]);
+          //ROS_INFO("POINT %d, %d  ADDED ",point[0],point[1]);
+        }
       }
     }
-  }
   }
 
 
@@ -441,9 +501,9 @@ void calc_map_depth(){
      cloud_point.PointXYZRGB::x = point[0];
      cloud_point.PointXYZRGB::y = point[1];
      cloud_point.PointXYZRGB::z = point[2];
-     cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +0)];
-     cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +1)];
-     cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x) +2)];
+     cloud_point.PointXYZRGB::b = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +0];
+     cloud_point.PointXYZRGB::g = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +1];
+     cloud_point.PointXYZRGB::r = glob_image.data[glob_image.channels() * (glob_image.cols * static_cast<int>(depth_map.at(i).y) + static_cast<int>(depth_map.at(i).x)) +2];
 
      temp_cloud.push_back(cloud_point);
   }
@@ -463,9 +523,9 @@ void calc_map_depth(){
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
 
-  cv::imshow("depth", cv_image);
+  /*cv::imshow("depth", cv_image);
   cv::waitKey();
-  cv::destroyAllWindows();
+  cv::destroyAllWindows();*/
 }
 
 
@@ -563,7 +623,8 @@ ROS_INFO("HELLO");
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
   pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
   pub_cloudmap = n_public.advertise<sensor_msgs::PointCloud2>("cloud_map",1);
-  pub_pose = n_public.advertise<geometry_msgs::Pose>("/car_pose",1);
+  pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
+
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
 
   listener = new tf::TransformListener;
