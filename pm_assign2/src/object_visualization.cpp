@@ -126,10 +126,10 @@ void transform_to_PointCloud(const darknet_ros_msgs::BoundingBox& carr, float ca
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
 
-  if(glob_image.ptr() != nullptr){
+  dist_car = 999999;
+  increment = -1;
 
-    last_textX = -99999;
-    last_textY = -99999;
+  if(glob_image.ptr() != nullptr){
 
     for(uint8_t i = 0; i< msg.bounding_boxes.size();i++){
 
@@ -148,10 +148,12 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
         float dist = check_dist_to_car(msg.bounding_boxes.at(i),&coords);
 
+
         cloud_car.reset(new PointCloud);
         cloud_car->width = cloud_map->width;
         cloud_car->height = 1;
         cloud_car->resize(cloud_car->width*cloud_car->height);
+
 
 
         transform_to_PointCloud(msg.bounding_boxes.at(i),dist);
@@ -194,9 +196,11 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
         //ROS_INFO("COORDS POINT MIN IN BL= [%.2f , %.2f , %.2f]",coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
         //ROS_INFO("COORDS CAR %d = [%.2f , %.2f , %.2f]",i,coords.x,coords.y,coords.z);
 
-        ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
-                 coords.point.x,coords.point.y,coords.point.z,
-                coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
+        //ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
+        //         coords.point.x,coords.point.y,coords.point.z,
+        //        coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
+
+
 
         if(coordsLink.point.x >=10 || abs(coordsLink.point.y) >=5 || coordsLink.point.x < 0 ){
 
@@ -217,6 +221,14 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
           cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,0,255),2,cv::LINE_8);
 
+          if( dist_car > dist ){
+
+            increment = i;
+            dist_car = dist;
+            closest_car = msg.bounding_boxes.at(i);
+            min_print = print;
+          }
+
         }
 
 
@@ -232,6 +244,16 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
         cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,255,0),2,cv::LINE_8);
 
       }
+    }
+
+    if(increment != -1){
+
+      int cw = car_width + 0.5;
+      int ch = car_height + 0.5;
+
+       std::string print = min_print +" Width=" + std::to_string(cw) +" Height=" + std::to_string(ch);
+       cv::putText(glob_image,print,cv::Point(msg.bounding_boxes.at(increment).xmin,msg.bounding_boxes.at(increment).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1.2,cv::LINE_AA);
+       //ROS_INFO("HEYYY");
     }
 
     cv::imshow("Warning System", glob_image );
@@ -344,6 +366,14 @@ void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
 
 }
 
+void dist_callback(const geometry_msgs::PointStamped& vec){
+
+
+  car_width = vec.point.x;
+  car_height = vec.point.y;
+
+}
+
 
 int main(int argc, char **argv)
 {
@@ -358,10 +388,10 @@ int main(int argc, char **argv)
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
   ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
   ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
-  //ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
+  ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
   ros::Subscriber sub_visual = n_public.subscribe("visual",1,visual_callback);
 
-   pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
+   //pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
 
    ros::spin();
 

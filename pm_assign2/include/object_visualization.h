@@ -60,10 +60,11 @@ std::vector<cv::Point3f> depth_map;
 PointCloud::Ptr cloud_map,cloud_car;
 std::string frame_id;
 tf::TransformListener *listener ;
-std::vector<float> dists;
 darknet_ros_msgs::BoundingBox closest_car;
-int cam_height,cam_width;
-int last_textX, last_textY;
+int cam_height,cam_width, increment;
+std::string min_print;
 cv::Point3f left,right,up,down;
 float dist_car = 999999;
+float car_width, car_height;
+
 #endif
