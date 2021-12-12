@@ -409,7 +409,7 @@ void calc_closest_car(){
           warn_msg.y.resize(id+1);
           warn_msg.z.resize(id+1);
 
-          warn_msg.bouBox[id];
+          warn_msg.bouBox[id] = carr;
           float dist = check_dist_to_car(carr,pc);
           warn_msg.distance[id] = dist;
           pcl::PointXYZ centroid;
