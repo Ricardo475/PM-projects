@@ -60,7 +60,7 @@ typedef pcl::PointCloud<Normal> PointCloudNormal;
 
 ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap,pub_dimensions, pub_warn;
 image_transport::Publisher pub_depth_map,pub_image;
-cv::Mat glob_image,depth_map_image;
+cv::Mat glob_image,depth_map_image,image_detection;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
 cv::Point3f left,right,up,down; // variables to calculate shape(left -> right) and height  (down -> up)

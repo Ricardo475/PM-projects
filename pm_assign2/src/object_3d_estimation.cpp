@@ -431,6 +431,11 @@ void calc_closest_car(){
 
   if(closest_car_find)
   {
+    sensor_msgs::ImagePtr s_msgs;
+    s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image_detection).toImageMsg();
+    s_msgs->header.stamp = ros::Time::now();
+    pub_image.publish(s_msgs);
+
     pub_warn.publish(warn_msg);
     erase_this = true;
     make_car_point_cloud(closest_car);
@@ -576,11 +581,7 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input)
   flag_cloud = true;
   if(flag_image && flag_cloud && flag_detections)
   {
-    sensor_msgs::ImagePtr s_msgs;
-    s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
-    s_msgs->header.stamp = ros::Time::now();
-    pub_image.publish(s_msgs);
-
+     glob_image.copyTo(image_detection);
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
@@ -607,11 +608,7 @@ void image_left_callback(const sensor_msgs::ImageConstPtr& msg)
 
   if(flag_image && flag_cloud && flag_detections)
   {
-      sensor_msgs::ImagePtr s_msgs;
-      s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
-      s_msgs->header.stamp = ros::Time::now();
-      pub_image.publish(s_msgs);
-
+      glob_image.copyTo(image_detection);
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
@@ -629,17 +626,14 @@ void camera_callback(const sensor_msgs::CameraInfo& camera_inf)
 }
 void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
 {
+
   detections = msg;
   flag_detections = true;
 
   //draw_rectangles(msg);
   if(flag_image && flag_cloud && flag_detections)
   {
-    sensor_msgs::ImagePtr s_msgs;
-    s_msgs = cv_bridge::CvImage(std_msgs::Header(), "bgr8", glob_image).toImageMsg();
-    s_msgs->header.stamp = ros::Time::now();
-    pub_image.publish(s_msgs);
-
+      glob_image.copyTo(image_detection);
       flag_image = false;
       flag_cloud = false;
       flag_detections = false;
