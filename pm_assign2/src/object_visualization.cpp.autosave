@@ -361,7 +361,7 @@ void topic_callback( const pm_assign2::warning_msg& msg){
         }
         catch (tf::TransformException ex){
                     ROS_ERROR("%s",ex.what());
-                    ros::Duration(1.0).sleep();
+                    //ros::Duration(1.0).sleep();
                     coordsLink.point.x = 999;
                     coordsLink.point.y = 999;
                     coordsLink.point.z = 999;
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
   glob_image = cv::Mat();
 
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
-  ros::Subscriber sub_left = n_public.subscribe("/objects/left/detection_image",1,image_left_callback);
+  ros::Subscriber sub_left = n_public.subscribe("image",1,image_left_callback);
  // ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
   ros::Subscriber sub_dists = n_public.subscribe("car_dimensions",1,car_dimensions_callback);
   ros::Subscriber sub_msg = n_public.subscribe("warn_topic",1,topic_callback);
