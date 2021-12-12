@@ -1,4 +1,4 @@
-#include "object_visualization.h"
+﻿#include "object_visualization.h"
 
 
 
@@ -84,6 +84,45 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, geometry_msgs
   return min_dist;
 }
 
+void transform_to_PointCloud(const darknet_ros_msgs::BoundingBox& carr, float car_min_dist){
+
+
+  float pixel[3];
+  float point[3];
+
+  float coordinates[3];
+
+  for(size_t i=0; i< depth_map.size(); i++)
+  {
+
+    //pass_float_to_float(depth_map.at(i),coordinates);
+    coordinates[0] = depth_map.at(i).x;
+    coordinates[1] = depth_map.at(i).y;
+    coordinates[2] = depth_map.at(i).z;
+
+    pixelToPoint(coordinates,coordinates);
+   // ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+    if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
+    {
+
+
+      pixel[0] = depth_map.at(i).x;
+      pixel[1] = depth_map.at(i).y;
+      pixel[2] = depth_map.at(i).z;
+      //ROS_INFO("PIXEL: [%.2lf ; %.2lf, %.2lf]", float(pixel[0]) , float(pixel[1]) , float(pixel[2]));
+      pixelToPoint(pixel,point);
+      pcl::PointXYZ cloud_point;
+      cloud_point.PointXYZ::x = point[0];
+      cloud_point.PointXYZ::y = point[1];
+      cloud_point.PointXYZ::z = point[2];
+      cloud_car->push_back(cloud_point);
+    }
+  }
+
+
+
+}
+
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
 
@@ -109,7 +148,26 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
         float dist = check_dist_to_car(msg.bounding_boxes.at(i),&coords);
 
-       // ROS_INFO("COORDS POINT MIN IN VF= [%.2f , %.2f , %.2f]",coords.point.x,coords.point.y,coords.point.z);
+        cloud_car.reset(new PointCloud);
+        cloud_car->width = cloud_map->width;
+        cloud_car->height = 1;
+        cloud_car->resize(cloud_car->width*cloud_car->height);
+
+
+        transform_to_PointCloud(msg.bounding_boxes.at(i),dist);
+
+        pcl::PointXYZ cl;
+
+        pcl::computeCentroid(*cloud_car,cl);
+
+        //coords.point.x = cl.x;
+        //coords.point.y = cl.y;
+        //coords.point.z = cl.z;
+
+        //ROS_INFO("[%.2f %2.f %2.f]", cl.x, cl.y, cl.z);
+
+
+       //ROS_INFO("COORDS POINT MIN IN VF= [%.2f , %.2f , %.2f]",coords.point.x,coords.point.y,coords.point.z);
 
         geometry_msgs::PointStamped coordsLink;
        // coordsLink.header.frame_id = "base_link";
@@ -136,9 +194,9 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
         //ROS_INFO("COORDS POINT MIN IN BL= [%.2f , %.2f , %.2f]",coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
         //ROS_INFO("COORDS CAR %d = [%.2f , %.2f , %.2f]",i,coords.x,coords.y,coords.z);
 
-        //ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
-        //         coords.point.x,coords.point.y,coords.point.z,
-        //        coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
+        ROS_INFO("vision_frame: (%.2f, %.2f. %.2f) -----> base_link: (%.2f, %.2f, %.2f)",
+                 coords.point.x,coords.point.y,coords.point.z,
+                coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
 
         if(coordsLink.point.x >=10 || abs(coordsLink.point.y) >=5 || coordsLink.point.x < 0 ){
 
@@ -176,11 +234,10 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
       }
     }
 
-    cv::imshow("darknet image", glob_image );
+    cv::imshow("Warning System", glob_image );
     cv::waitKey(2000);
     //cv::destroyAllWindows();
   }
-
 }
 
 
@@ -281,6 +338,8 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input){
 
 void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
 
+
+
   draw_rectangles(car);
 
 }
@@ -302,6 +361,8 @@ int main(int argc, char **argv)
   //ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
   ros::Subscriber sub_visual = n_public.subscribe("visual",1,visual_callback);
 
-  ros::spin();
+   pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
+
+   ros::spin();
 
 }

@@ -166,10 +166,12 @@ void check_limits_of_car(cv::Point3f &left, cv::Point3f &right, cv::Point3f &up,
 
 void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 {
+  /*
   float thresh_x_min = (carr.xmax - carr.xmin)/6 + carr.xmin,
         thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
         thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
+  */
   float pixel[3];
   float point[3];
   ROS_INFO("ENTRAR car cloud");
@@ -189,7 +191,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 
     pass_float_to_float(depth_map.at(i),coordinates);
     pixelToPoint(coordinates,coordinates);
-    ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+   // ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
     if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
     {
 
@@ -298,8 +300,6 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
  ROS_INFO("Conversion from PCL PolygonMesh to ROS Mesh ended.");*/
  std_msgs::Header header;
 
- header.frame_id = frame_id;
- header.stamp    = ros::Time::now();
 // msg_poly.header = header;
 
 // pub_car_mesh.publish(msg_poly);
@@ -463,9 +463,9 @@ void calc_map_depth(){
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
 
-  cv::imshow("depth", cv_image);
-  cv::waitKey();
-  cv::destroyAllWindows();
+  //cv::imshow("depth", cv_image);
+  //cv::waitKey();
+  //cv::destroyAllWindows();
 }
 
 
