@@ -367,13 +367,10 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
  ROS_INFO("Conversion from PCL PolygonMesh to ROS Mesh ended.");*/
  std_msgs::Header header;
 
-// msg_poly.header = header;
 
-// pub_car_mesh.publish(msg_poly);
 
  sensor_msgs::PointCloud2 msg_trasnformed_pub;
 
-// pub_car_mesh.publish(ros_mesh_ptr);
 
 
  pcl::toROSMsg(*cloud_car,msg_trasnformed_pub);
@@ -508,18 +505,6 @@ void calc_map_depth(){
   }
 
 
-  sensor_msgs::PointCloud2 pub_vision;
-  std_msgs::Header header_vision;
-
-  //ROS_ERROR("error in to");
-  pcl::toROSMsg(*cloud_vision_field,pub_vision);
-  //ROS_ERROR("error in to");
-
-  header_vision.frame_id = frame_id;
-  header_vision.stamp    = ros::Time::now();
-  pub_vision.header = header_vision;
-
-  pub_cloudmap.publish(pub_vision);
 
 
 
@@ -563,10 +548,7 @@ void calc_map_depth(){
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
 
-  sensor_msgs::ImagePtr msg;
-  msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
-  msg->header.stamp = ros::Time::now();
-  pub_depth_map.publish(msg);
+
   /*cv::imshow("depth", cv_image);
   cv::waitKey();
   cv::destroyAllWindows();*/
@@ -648,7 +630,6 @@ void image_darkNet_callback(const darknet_ros_msgs::BoundingBoxes& msg)
       calc_closest_car();
 
   }
-  pub_visualization.publish(detections); //preciso de todos os carros no "object_visualization" :)
 }
 int main(int argc, char **argv)
 {
@@ -666,14 +647,10 @@ int main(int argc, char **argv)
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
-  pub_cloudmap = n_public.advertise<sensor_msgs::PointCloud2>("cloud_map",1);
   pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
   pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("car_dimensions", 1);
-  pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
   pub_warn = n_public.advertise<pm_assign2::warning_msg> ("warn_topic", 1);
-  pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
-  image_transport::ImageTransport it(n_public);
-  pub_depth_map = it.advertise("/depth_map_image",1);
+
   listener = new tf::TransformListener;
   try
   {
