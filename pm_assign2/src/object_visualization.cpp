@@ -361,7 +361,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
   ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
   ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
-  ros::Subscriber sub_visual = n_public.subscribe("visual",1,visual_callback);
+  ros::Subscriber sub_visual = n_public.subscribe("/objects/left/bounding_boxes",1,visual_callback);
 
    //pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
 
