@@ -37,19 +37,9 @@
 #include <sensor_msgs/PointCloud2.h>
 #include "pcl_ros/transforms.h"
 #include <pcl/features/normal_3d.h>
-
-
-///PCL
-#include<pcl/io/pcd_io.h>
-#include<pcl/point_types.h>
-#include "pcl_ros/point_cloud.h"
+#include <pcl/common/distances.h>
 #include "pcl_conversions/pcl_conversions.h"
-#include "pcl_ros/point_cloud.h"
-#include <sensor_msgs/PointCloud2.h>
-#include "pcl_ros/transforms.h"
-#include <pcl/features/normal_3d.h>
 #include <pcl/surface/gp3.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <shape_msgs/Mesh.h>
 
@@ -67,10 +57,14 @@ ros::Publisher pub;
 cv::Mat glob_image;
 sensor_msgs::CameraInfo::_K_type intrinsic_matrix;
 std::vector<cv::Point3f> depth_map;
-PointCloud::Ptr cloud_map;
+PointCloud::Ptr cloud_map,cloud_car;
 std::string frame_id;
 tf::TransformListener *listener ;
-std::vector<float> dists;
-int cam_height,cam_width;
-int last_textX, last_textY;
+darknet_ros_msgs::BoundingBox closest_car;
+int cam_height,cam_width, increment;
+std::string min_print;
+cv::Point3f left,right,up,down;
+float dist_car = 999999;
+float car_width, car_height;
+
 #endif

@@ -1,4 +1,4 @@
-#include "object_visualization.h"
+﻿#include "object_visualization.h"
 
 
 
@@ -84,13 +84,52 @@ float check_dist_to_car(const darknet_ros_msgs::BoundingBox& carr, geometry_msgs
   return min_dist;
 }
 
+void transform_to_PointCloud(const darknet_ros_msgs::BoundingBox& carr, float car_min_dist){
+
+
+  float pixel[3];
+  float point[3];
+
+  float coordinates[3];
+
+  for(size_t i=0; i< depth_map.size(); i++)
+  {
+
+    //pass_float_to_float(depth_map.at(i),coordinates);
+    coordinates[0] = depth_map.at(i).x;
+    coordinates[1] = depth_map.at(i).y;
+    coordinates[2] = depth_map.at(i).z;
+
+    pixelToPoint(coordinates,coordinates);
+   // ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+    if(/*inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.xmax, carr.ymax) &&*/ norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) > (car_min_dist - 1) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
+    {
+
+
+      pixel[0] = depth_map.at(i).x;
+      pixel[1] = depth_map.at(i).y;
+      pixel[2] = depth_map.at(i).z;
+      //ROS_INFO("PIXEL: [%.2lf ; %.2lf, %.2lf]", float(pixel[0]) , float(pixel[1]) , float(pixel[2]));
+      pixelToPoint(pixel,point);
+      pcl::PointXYZ cloud_point;
+      cloud_point.PointXYZ::x = point[0];
+      cloud_point.PointXYZ::y = point[1];
+      cloud_point.PointXYZ::z = point[2];
+      cloud_car->push_back(cloud_point);
+    }
+  }
+
+
+
+}
+
 void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 {
 
-  if(glob_image.ptr() != nullptr){
+  dist_car = 999999;
+  increment = -1;
 
-    last_textX = -99999;
-    last_textY = -99999;
+  if(glob_image.ptr() != nullptr){
 
     for(uint8_t i = 0; i< msg.bounding_boxes.size();i++){
 
@@ -109,7 +148,28 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
         float dist = check_dist_to_car(msg.bounding_boxes.at(i),&coords);
 
-       // ROS_INFO("COORDS POINT MIN IN VF= [%.2f , %.2f , %.2f]",coords.point.x,coords.point.y,coords.point.z);
+
+        cloud_car.reset(new PointCloud);
+        cloud_car->width = cloud_map->width;
+        cloud_car->height = 1;
+        cloud_car->resize(cloud_car->width*cloud_car->height);
+
+
+
+        transform_to_PointCloud(msg.bounding_boxes.at(i),dist);
+
+        pcl::PointXYZ cl;
+
+        pcl::computeCentroid(*cloud_car,cl);
+
+        //coords.point.x = cl.x;
+        //coords.point.y = cl.y;
+        //coords.point.z = cl.z;
+
+        //ROS_INFO("[%.2f %2.f %2.f]", cl.x, cl.y, cl.z);
+
+
+       //ROS_INFO("COORDS POINT MIN IN VF= [%.2f , %.2f , %.2f]",coords.point.x,coords.point.y,coords.point.z);
 
         geometry_msgs::PointStamped coordsLink;
        // coordsLink.header.frame_id = "base_link";
@@ -140,6 +200,8 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
         //         coords.point.x,coords.point.y,coords.point.z,
         //        coordsLink.point.x,coordsLink.point.y,coordsLink.point.z);
 
+
+
         if(coordsLink.point.x >=10 || abs(coordsLink.point.y) >=5 || coordsLink.point.x < 0 ){
 
 
@@ -159,6 +221,14 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
 
           cv::rectangle(glob_image,cv::Point(msg.bounding_boxes.at(i).xmax,msg.bounding_boxes.at(i).ymax),cv::Point(msg.bounding_boxes.at(i).xmin,msg.bounding_boxes.at(i).ymin),cv::Scalar(0,0,255),2,cv::LINE_8);
 
+          if( dist_car > dist ){
+
+            increment = i;
+            dist_car = dist;
+            closest_car = msg.bounding_boxes.at(i);
+            min_print = print;
+          }
+
         }
 
 
@@ -176,11 +246,20 @@ void draw_rectangles(const darknet_ros_msgs::BoundingBoxes msg)
       }
     }
 
-    cv::imshow("darknet image", glob_image );
+    if(increment != -1){
+
+      int cw = car_width + 0.5;
+      int ch = car_height + 0.5;
+
+       std::string print = min_print +" Width=" + std::to_string(cw) +" Height=" + std::to_string(ch);
+       cv::putText(glob_image,print,cv::Point(msg.bounding_boxes.at(increment).xmin,msg.bounding_boxes.at(increment).ymin-5),cv::FONT_HERSHEY_SIMPLEX,0.6,cv::Scalar(0,0,255),1.2,cv::LINE_AA);
+       //ROS_INFO("HEYYY");
+    }
+
+    cv::imshow("Warning System", glob_image );
     cv::waitKey(2000);
     //cv::destroyAllWindows();
   }
-
 }
 
 
@@ -281,7 +360,17 @@ void pointCloud_callback(const sensor_msgs::PointCloud2ConstPtr& input){
 
 void visual_callback(const darknet_ros_msgs::BoundingBoxes& car){
 
+
+
   draw_rectangles(car);
+
+}
+
+void dist_callback(const geometry_msgs::PointStamped& vec){
+
+
+  car_width = vec.point.x;
+  car_height = vec.point.y;
 
 }
 
@@ -299,9 +388,11 @@ int main(int argc, char **argv)
   ros::Subscriber cam_inf = n_public.subscribe("/stereo/left/camera_info",1,camera_callback);
   ros::Subscriber sub_left = n_public.subscribe("/stereo/left/image_rect_color",1,image_left_callback);
   ros::Subscriber sub_cloud = n_public.subscribe("cloud_map",1,pointCloud_callback);
-  //ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
+  ros::Subscriber sub_dists = n_public.subscribe("dist",1,dist_callback);
   ros::Subscriber sub_visual = n_public.subscribe("visual",1,visual_callback);
 
-  ros::spin();
+   //pub = n_public.advertise<PointCloud> ("/stereo/v_car_cloud", 1);
+
+   ros::spin();
 
 }

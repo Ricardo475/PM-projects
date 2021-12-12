@@ -58,7 +58,7 @@ typedef pcl::Normal Normal; ; //!< Data type definition for a PointXYZNormal
 typedef pcl::PointCloud<Normal> PointCloudNormal;
 //Global vars
 
-ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap;
+ros::Publisher pub,pub_car,pub_visualization, pub_pose,pub_car_mesh,pub_cloudmap,pub_dimensions;
 cv::Mat glob_image,depth_map_image;
 tf::TransformListener *listener ;
 std::vector<cv::Point3f> depth_map;
@@ -72,4 +72,5 @@ darknet_ros_msgs::BoundingBoxes detections;
 int cam_width, cam_height;
 float car_min_dist=0;
 bool erase_this = false;
+float car_width, car_height;
 #endif

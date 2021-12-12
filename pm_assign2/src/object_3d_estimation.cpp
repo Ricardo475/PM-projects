@@ -83,7 +83,12 @@ void calc_shape_width_height(const darknet_ros_msgs::BoundingBox& carr)
 //  float height = cv::sqrt((real_up[0] - real_down[0]) * (real_up[0] - real_down[0]) + (real_up[1] - real_down[1]) * (real_up[1] - real_down[1]) + (real_up[2] - real_down[2])*(real_up[2] - real_down[2]));
   float height = abs(real_up[1] - real_down[1]);
 
+  car_width = width;
+  car_height = height;
+
   ROS_INFO("CAR WIDHT = %.2f  HEIGHT = %.2f ",width,height);
+
+
 }
 bool inside_boundary(const cv::Point3f& point,const float& t_x_min,const float& t_x_max,const float& t_y_min,const float& t_y_max)
 {
@@ -224,10 +229,12 @@ void check_limits_of_car(cv::Point3f &left, cv::Point3f &right, cv::Point3f &up,
 
 void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
 {
+  /*
   float thresh_x_min = (carr.xmax - carr.xmin)/6 + carr.xmin,
         thresh_x_max = (carr.xmax - carr.xmin)*5/6 + carr.xmin,
         thresh_y_min = (carr.ymax - carr.ymin)/6 + carr.ymin,
         thresh_y_max = (carr.ymax - carr.ymin)*5/6 + carr.ymin;
+  */
   float pixel[3];
   float point[3];
   ROS_INFO("ENTRAR car cloud");
@@ -248,6 +255,7 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
     pass_float_to_float(depth_map.at(i),coordinates);
     pixelToPoint(coordinates,coordinates);
    // ROS_INFO("X: %.2f  Y: %.2f   Z:  %.2f", coordinates[0], coordinates[1],coordinates[2]);
+
     if(inside_boundary(depth_map.at(i), carr.xmin, carr.xmax, carr.ymin, carr.ymax) && norm_dist(depth_map.at(i)) < (car_min_dist + 3) && norm_dist(depth_map.at(i)) >= (car_min_dist) && coordinates[1] <1.1) //dar 3m de offset devido ao comprimento de um carro normal
     {
 
@@ -357,8 +365,6 @@ void make_car_point_cloud(darknet_ros_msgs::BoundingBox& carr)
  ROS_INFO("Conversion from PCL PolygonMesh to ROS Mesh ended.");*/
  std_msgs::Header header;
 
- header.frame_id = frame_id;
- header.stamp    = ros::Time::now();
 // msg_poly.header = header;
 
 // pub_car_mesh.publish(msg_poly);
@@ -409,6 +415,13 @@ void calc_closest_car(){
     cv::Mat imageROI(glob_image,cv::Rect(closest_car.xmin,closest_car.ymin,(closest_car.xmax- closest_car.xmin),(closest_car.ymax - closest_car.ymin)));
     calc_shape_width_height(closest_car);
     pose_arrray_pub();
+
+    geometry_msgs::PointStamped shape;
+    shape.point.x = car_width;
+    shape.point.y = car_height;
+
+    pub_dimensions.publish(shape);
+
     // Create a window.
     /*cv::namedWindow( "closest car", cv::WINDOW_NORMAL );
     cv::imshow("closest car", imageROI );
@@ -416,6 +429,8 @@ void calc_closest_car(){
     cv::destroyAllWindows();*/
 
   }
+
+
 
  /* cv::rectangle(glob_image,cv::Point(closest_car.xmax,closest_car.ymax),cv::Point(closest_car.xmin,closest_car.ymin),cv::Scalar(255,255,255),1,cv::LINE_8);
   cv::imshow("darknet iamge", glob_image );
@@ -523,9 +538,11 @@ void calc_map_depth(){
   msg_trasnformed_pub.header = header;
   pub.publish(msg_trasnformed_pub);
 
+
   /*cv::imshow("depth", cv_image);
   cv::waitKey();
   cv::destroyAllWindows();*/
+
 }
 
 
@@ -621,9 +638,10 @@ ROS_INFO("HELLO");
   ros::Subscriber sub_dark = n_public.subscribe("/objects/left/bounding_boxes",1,image_darkNet_callback);
   pub = n_public.advertise<PointCloud> ("/stereo/pointcloud", 1);
   pub_car = n_public.advertise<PointCloudRGB> ("/stereo/car_pointcloud", 1);
-  pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
   pub_cloudmap = n_public.advertise<sensor_msgs::PointCloud2>("cloud_map",1);
   pub_pose = n_public.advertise<geometry_msgs::PoseArray >("/car_pose",1);
+  pub_dimensions = n_public.advertise< geometry_msgs::PointStamped> ("dist", 1);
+  pub_visualization = n_public.advertise<darknet_ros_msgs::BoundingBoxes> ("visual", 1);
 
   pub_car_mesh = n_public.advertise<sensor_msgs::PointCloud2>("/stereo/car_mesh",1);
 
